@@ -177,7 +177,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"Наименование\"] || $json[\"row_number\"] || $json[\"ID\"] || ''}}",
+              "value1": "={{$json[\"row_number\"] || ''}}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -198,7 +198,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing ID, skipping row', item.json);\n});\nreturn inputItems;"
+        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing row_number, skipping row', item.json);\n});\nreturn inputItems;"
       },
       "id": "10",
       "name": "Log Missing ID",
@@ -223,8 +223,8 @@
           "value": "Sheet1"
         },
         "dataMode": "defineBelow",
-        "columnToMatchOn": "Наименование",
-        "valueToMatchOn": "={{$json[\"Наименование\"] || ''}}",
+        "columnToMatchOn": "row_number",
+        "valueToMatchOn": "={{$json[\"row_number\"] || ''}}",
         "fieldsUi": {
           "values": [
             {
@@ -238,6 +238,14 @@
             {
               "column": "Email 3",
               "fieldValue": "={{$json[\"email_3\"] || \"\"}}"
+            },
+            {
+              "column": "parse_status",
+              "fieldValue": "={{$json[\"parse_status\"] || \"\"}}"
+            },
+            {
+              "column": "parsed_urls_count",
+              "fieldValue": "={{$json[\"parsed_urls_count\"] || 0}}"
             }
           ]
         }
