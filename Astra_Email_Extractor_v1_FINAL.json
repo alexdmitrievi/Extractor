@@ -1,0 +1,396 @@
+{
+  "name": "Astra Email Extractor v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "REPLACE_WITH_SPREADSHEET_ID"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Sheet1"
+        }
+      },
+      "id": "2",
+      "name": "Get Row(s)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 10
+      },
+      "id": "3",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"E-mail 1\"]}}",
+              "operation": "isEmpty",
+              "value2": ""
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "4",
+      "name": "E-mail 1 is empty?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const clean = (value) => (typeof value === 'string' ? value.trim() : '');\nconst inputItems = $input.all();\n\nreturn inputItems.map((item) => {\n  const row = item.json || {};\n  const raw =\n    clean(row[\"Веб-сайт 1\"]) ||\n    clean(row[\"Веб-сайт 2\"]) ||\n    clean(row[\"Веб-сайт 3\"]) ||\n    clean(row[\"2GIS URL\"]);\n\n  let targetUrl = raw;\n  if (targetUrl && !/^https?:\\/\\//i.test(targetUrl)) {\n    targetUrl = `https://${targetUrl}`;\n  }\n\n  let targetHost = '';\n  if (targetUrl) {\n    try {\n      targetHost = new URL(targetUrl).hostname.replace(/^www\\./i, '').toLowerCase();\n    } catch (error) {\n      targetUrl = '';\n    }\n  }\n\n  item.json.targetUrl = targetUrl || '';\n  item.json.targetHost = targetHost;\n  return item;\n});"
+      },
+      "id": "5",
+      "name": "Select URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"targetUrl\"]}}",
+              "operation": "startsWith",
+              "value2": "http"
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "6",
+      "name": "Valid URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json[\"targetUrl\"]}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 45000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 10
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "html",
+              "fullResponse": false,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "7",
+      "name": "Fetch Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1520,
+        180
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const inputItems = $input.all();\nconst emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}/gi;\n\nconst blockedDomains = [\n  '2gis.ru',\n  'wixpress.com',\n  'sentry.io',\n  'cloudflare.com',\n  'example.com',\n  'example.org',\n  'example.net'\n];\n\nconst blockedLocalStarts = ['noreply', 'no-reply', 'donotreply', 'do-not-reply'];\n\nconst normalizeEmail = (value) =>\n  String(value)\n    .toLowerCase()\n    .replace(/^[\\s\"'<>()[\\]{}.,;:!]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '');\n\nconst isBlocked = (email) => {\n  if (!email || !email.includes('@')) return true;\n\n  const [local, domainRaw] = email.split('@');\n  const domain = String(domainRaw || '').toLowerCase();\n  const localPart = String(local || '').toLowerCase();\n\n  if (!localPart || !domain) return true;\n  if (blockedLocalStarts.some((prefix) => localPart.startsWith(prefix))) return true;\n\n  return blockedDomains.some((blocked) => domain === blocked || domain.endsWith(`.${blocked}`));\n};\n\nreturn inputItems.map((item) => {\n  const htmlRaw = String(\n    item.json.html ?? item.json.body ?? item.json.data ?? item.json.response ?? ''\n  );\n\n  const prepared = htmlRaw\n    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<!--([\\s\\S]*?)-->/g, ' ');\n\n  const matches = prepared.match(emailRegex) || [];\n  const deduped = [...new Set(matches.map(normalizeEmail).filter((email) => email && !isBlocked(email)))];\n\n  item.json.emails_array = deduped;\n  item.json.emails_string = deduped.join(', ');\n  item.json.email_1 = deduped[0] || '';\n  item.json.email_2 = deduped[1] || '';\n  item.json.parse_status = deduped.length > 0 ? 'emails_found' : 'no_email_found';\n\n  return item;\n});"
+      },
+      "id": "8",
+      "name": "Extract Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"ID\"] || $item(0).$node[\"Select URL\"].json[\"ID\"] || ''}}",
+              "operation": "isNotEmpty",
+              "value2": ""
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "9",
+      "name": "ID present?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing ID, skipping row', item.json);\n});\nreturn inputItems;"
+      },
+      "id": "10",
+      "name": "Log Missing ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "REPLACE_WITH_SPREADSHEET_ID"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "ID",
+        "valueToMatchOn": "={{$json[\"ID\"] || $item(0).$node[\"Select URL\"].json[\"ID\"] || ''}}",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "E-mail 1",
+              "fieldValue": "={{$json[\"email_1\"] || ''}}"
+            },
+            {
+              "column": "E-mail 2",
+              "fieldValue": "={{$json[\"email_2\"] || ''}}"
+            }
+          ]
+        }
+      },
+      "id": "11",
+      "name": "Update Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2120,
+        180
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Row(s)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "E-mail 1 is empty?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-mail 1 is empty?": {
+      "main": [
+        [
+          {
+            "node": "Select URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select URL": {
+      "main": [
+        [
+          {
+            "node": "Valid URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid URL?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Website",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Website": {
+      "main": [
+        [
+          {
+            "node": "Extract Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Emails": {
+      "main": [
+        [
+          {
+            "node": "ID present?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ID present?": {
+      "main": [
+        [
+          {
+            "node": "Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Missing ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Missing ID": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "1"
+}
