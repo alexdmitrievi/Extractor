@@ -110,7 +110,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{$json[\"targetUrl\"]}}",
+        "url": "={{ (() => { const raw = $json[\"targetUrl\"] || $json[\"Веб-сайт 1\"] || $json[\"Веб-сайт 2\"] || $json[\"Веб-сайт 3\"] || $json[\"Веб-сайт\"] || $json[\"2GIS URL\"] || $json[\"Website 1\"] || $json[\"Website 2\"] || $json[\"Website 3\"] || $json[\"Website\"] || $json[\"URL\"] || $json[\"Url\"] || $json[\"url\"] || \"https://duckduckgo.com/\"; const v = String(raw ?? \"\").trim(); if (!v) return \"https://duckduckgo.com/\"; return /^https?:\\/\\//i.test(v) ? v : `https://${v.replace(/^\\/+/,'')}`; })() }}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -315,7 +315,7 @@
         ],
         [
           {
-            "node": "Loop Over Items",
+            "node": "Fetch Website",
             "type": "main",
             "index": 0
           }
