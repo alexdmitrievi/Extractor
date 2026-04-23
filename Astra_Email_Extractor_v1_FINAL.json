@@ -169,7 +169,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"ID\"]}}",
+              "value1": "={{$json[\"row_number\"] || $json[\"ID\"] || ''}}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -215,8 +215,8 @@
           "value": "Sheet1"
         },
         "dataMode": "defineBelow",
-        "columnToMatchOn": "ID",
-        "valueToMatchOn": "={{$json[\"ID\"]}}",
+        "columnToMatchOn": "row_number",
+        "valueToMatchOn": "={{$json[\"row_number\"] || $json[\"ID\"] || ''}}",
         "fieldsUi": {
           "values": [
             {
