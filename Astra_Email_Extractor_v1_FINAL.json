@@ -53,7 +53,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"E-mail 1\"]}}",
+              "value1": "={{$json[\"E-mail\"] || $json[\"E-mail 1\"] || ''}}",
               "operation": "isEmpty",
               "value2": ""
             }
@@ -169,7 +169,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"row_number\"] || $json[\"ID\"] || ''}}",
+              "value1": "={{$json[\"Наименование\"] || $json[\"row_number\"] || $json[\"ID\"] || ''}}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -215,17 +215,13 @@
           "value": "Sheet1"
         },
         "dataMode": "defineBelow",
-        "columnToMatchOn": "row_number",
-        "valueToMatchOn": "={{$json[\"row_number\"] || $json[\"ID\"] || ''}}",
+        "columnToMatchOn": "Наименование",
+        "valueToMatchOn": "={{$json[\"Наименование\"] || ''}}",
         "fieldsUi": {
           "values": [
             {
-              "column": "E-mail 1",
-              "fieldValue": "={{$json[\"email_1\"] || ''}}"
-            },
-            {
-              "column": "E-mail 2",
-              "fieldValue": "={{$json[\"email_2\"] || ''}}"
+              "column": "E-mail",
+              "fieldValue": "={{$json[\"email_1\"] || $json[\"email_2\"] || $json[\"emails_string\"] || $json[\"E-mail\"] || ''}}"
             }
           ]
         }
