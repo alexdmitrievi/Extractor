@@ -229,7 +229,11 @@
           "values": [
             {
               "column": "E-mail",
-              "fieldValue": "={{$json[\"emails_string\"] || $json[\"email_1\"] || $json[\"email_2\"] || $json[\"E-mail\"] || \"\"}}"
+              "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
+            },
+            {
+              "column": "Email 2",
+              "fieldValue": "={{$json[\"email_2\"] || \"\"}}"
             }
           ]
         }
