@@ -58,12 +58,12 @@
               "value2": ""
             },
             {
-              "value1": "={{$json[\"Email 2\"] || \"\"}}",
+              "value1": "={{$json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}",
               "operation": "isEmpty",
               "value2": ""
             },
             {
-              "value1": "={{$json[\"Email 3\"] || \"\"}}",
+              "value1": "={{$json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}",
               "operation": "isEmpty",
               "value2": ""
             }
@@ -242,12 +242,12 @@
               "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
             },
             {
-              "column": "Email 2",
-              "fieldValue": "={{$json[\"email_2\"] || $json[\"Email 2\"] || \"\"}}"
+              "column": "E-mail 2",
+              "fieldValue": "={{$json[\"email_2\"] || $json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}"
             },
             {
-              "column": "Email 3",
-              "fieldValue": "={{$json[\"email_3\"] || $json[\"Email 3\"] || \"\"}}"
+              "column": "E-mail 3",
+              "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
             },
             {
               "column": "parse_status",
@@ -314,12 +314,12 @@
               "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
             },
             {
-              "column": "Email 2",
-              "fieldValue": "={{$json[\"email_2\"] || $json[\"Email 2\"] || \"\"}}"
+              "column": "E-mail 2",
+              "fieldValue": "={{$json[\"email_2\"] || $json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}"
             },
             {
-              "column": "Email 3",
-              "fieldValue": "={{$json[\"email_3\"] || $json[\"Email 3\"] || \"\"}}"
+              "column": "E-mail 3",
+              "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
             },
             {
               "column": "parse_status",
