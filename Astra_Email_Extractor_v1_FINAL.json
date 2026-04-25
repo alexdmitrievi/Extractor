@@ -208,7 +208,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing row_number and ID, skipping row', item.json);\n});\nreturn inputItems;"
+        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing row_number, ID and Наименование, skipping row', item.json);\n});\nreturn inputItems;"
       },
       "id": "10",
       "name": "Log Missing ID",
@@ -248,14 +248,6 @@
             {
               "column": "E-mail 3",
               "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
-            },
-            {
-              "column": "parse_status",
-              "fieldValue": "={{$json[\"parse_status\"] || \"\"}}"
-            },
-            {
-              "column": "parsed_urls_count",
-              "fieldValue": "={{$json[\"parsed_urls_count\"] || 0}}"
             }
           ]
         }
@@ -267,7 +259,8 @@
       "position": [
         2120,
         180
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -320,14 +313,6 @@
             {
               "column": "E-mail 3",
               "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
-            },
-            {
-              "column": "parse_status",
-              "fieldValue": "={{$json[\"parse_status\"] || \"\"}}"
-            },
-            {
-              "column": "parsed_urls_count",
-              "fieldValue": "={{$json[\"parsed_urls_count\"] || 0}}"
             }
           ]
         }
@@ -339,7 +324,73 @@
       "position": [
         2320,
         360
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"Наименование\"] || \"\"}}",
+              "operation": "isNotEmpty",
+              "value2": ""
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "14",
+      "name": "Name fallback present?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        520
       ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "REPLACE_WITH_SPREADSHEET_ID"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "Наименование",
+        "valueToMatchOn": "={{$json[\"Наименование\"] || \"\"}}",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "E-mail",
+              "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
+            },
+            {
+              "column": "E-mail 2",
+              "fieldValue": "={{$json[\"email_2\"] || $json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}"
+            },
+            {
+              "column": "E-mail 3",
+              "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
+            }
+          ]
+        }
+      },
+      "id": "15",
+      "name": "Update Row by Name",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2520,
+        520
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -497,7 +548,7 @@
         ],
         [
           {
-            "node": "Log Missing ID",
+            "node": "Name fallback present?",
             "type": "main",
             "index": 0
           }
@@ -505,6 +556,35 @@
       ]
     },
     "Update Row by ID": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name fallback present?": {
+      "main": [
+        [
+          {
+            "node": "Update Row by Name",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Missing ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row by Name": {
       "main": [
         [
           {
