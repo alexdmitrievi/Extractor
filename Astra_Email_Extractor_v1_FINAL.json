@@ -1,5 +1,5 @@
 {
-  "name": "Astra Email Extractor v1",
+  "name": "Astra Email Extractor v2",
   "nodes": [
     {
       "parameters": {},
@@ -53,17 +53,17 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"E-mail\"] || $json[\"E-mail 1\"] || \"\"}}",
+              "value1": "={{ ($json[\"E-mail\"] || $json[\"E-mail 1\"] || $json[\"Email\"] || \"\").toString().trim() }}",
               "operation": "isEmpty",
               "value2": ""
             },
             {
-              "value1": "={{$json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}",
+              "value1": "={{ ($json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\").toString().trim() }}",
               "operation": "isEmpty",
               "value2": ""
             },
             {
-              "value1": "={{$json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}",
+              "value1": "={{ ($json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\").toString().trim() }}",
               "operation": "isEmpty",
               "value2": ""
             }
@@ -72,7 +72,7 @@
         "combineOperation": "any"
       },
       "id": "4",
-      "name": "E-mail 1 is empty?",
+      "name": "Has Empty Email Slot?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
@@ -84,7 +84,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const inputItems = $input.all();\n\nconst preferredKeys = [\n  'Веб-сайт 1',\n  'Веб-сайт 2',\n  'Веб-сайт 3',\n  'Веб-сайт',\n  '2GIS URL',\n  'Сайт 1',\n  'Сайт 2',\n  'Сайт 3',\n  'Сайт',\n  'Website 1',\n  'Website 2',\n  'Website 3',\n  'Website',\n  'Site 1',\n  'Site 2',\n  'Site 3',\n  'Site',\n  'URL',\n  'Url',\n  'url',\n  'Вконтакте',\n  'VK',\n  'vk'\n];\n\nconst hintKeyRegex = /(сайт|веб|website|site|url|вк|vk|instagram|facebook|telegram|linkedin)/i;\nconst socialHostRegex = /^(?:www\\.)?(vk\\.com|m\\.vk\\.com|t\\.me|telegram\\.me|instagram\\.com|facebook\\.com|linkedin\\.com)$/i;\nconst deepPaths = [\n  '/contacts',\n  '/contact',\n  '/about',\n  '/about-us',\n  '/company/contacts',\n  '/kontakty',\n  '/o-kompanii',\n  '/ru/contacts'\n];\n\nconst maxSeedUrlsPerRow = 6;\nconst maxCrawlUrlsPerRow = 20;\n\nconst clean = (value) => String(value ?? '').trim();\n\nconst trimToken = (value) =>\n  clean(value).replace(/^[\\s\"'<>()[\\]{}]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '');\n\nconst normalizeUrl = (value) => {\n  let normalized = trimToken(value);\n  if (!normalized) return '';\n\n  if (!/^https?:\\/\\//i.test(normalized)) {\n    normalized = 'https://' + normalized.replace(/^\\/+/, '');\n  }\n\n  try {\n    const parsed = new URL(normalized);\n    if (!parsed.hostname || !parsed.hostname.includes('.')) return '';\n    parsed.hash = '';\n    return parsed.toString();\n  } catch {\n    return '';\n  }\n};\n\nconst canonicalUrlKey = (url) => {\n  try {\n    const parsed = new URL(url);\n    const host = parsed.hostname.toLowerCase();\n    const pathname = parsed.pathname.replace(/\\/+$/g, '') || '/';\n    const search = parsed.search || '';\n    return host + pathname + search;\n  } catch {\n    return String(url || '').toLowerCase();\n  }\n};\n\nconst extractUrlTokens = (value) => {\n  const raw = clean(value);\n  if (!raw) return [];\n\n  const tokens = new Set();\n\n  const splitParts = raw\n    .split(/[\\n,;|]+/)\n    .map(trimToken)\n    .filter(Boolean);\n\n  for (const part of splitParts) {\n    const normalized = normalizeUrl(part);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const directMatches = raw.match(/https?:\\/\\/[^\\s\"'<>]+/gi) || [];\n  for (const match of directMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const domainMatches = raw.match(/(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:\\/[^\\s\"'<>]*)?/gi) || [];\n  for (const match of domainMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  return Array.from(tokens);\n};\n\nconst buildSearchFallbackUrl = (row) => {\n  const query = [\n    clean(row['Наименование'] ?? row['Название'] ?? row['name']),\n    clean(row['Город'] ?? row['city']),\n    clean(row['Телефон 1'] ?? row['Телефон'] ?? row['phone'])\n  ]\n    .filter(Boolean)\n    .join(' ');\n\n  if (!query) return '';\n\n  return 'https://duckduckgo.com/html/?q=' + encodeURIComponent(query + ' официальный сайт контакты email vk');\n};\n\nconst buildDeepEntries = (seedUrl) => {\n  const deepEntries = [];\n\n  try {\n    const parsed = new URL(seedUrl);\n    const host = parsed.hostname.toLowerCase();\n\n    if (socialHostRegex.test(host)) {\n      if (/vk\\.com$|m\\.vk\\.com$/i.test(host)) {\n        const slug = parsed.pathname.replace(/^\\/+|\\/+$/g, '');\n        if (slug) {\n          const mobileUrl = normalizeUrl('https://m.vk.com/' + slug);\n          if (mobileUrl) {\n            deepEntries.push({ url: mobileUrl, depth: 1, source: 'vk-mobile' });\n          }\n        }\n      }\n      return deepEntries;\n    }\n\n    const origin = parsed.origin;\n    for (const path of deepPaths) {\n      const deepUrl = normalizeUrl(origin + path);\n      if (deepUrl) {\n        deepEntries.push({ url: deepUrl, depth: 1, source: 'deep:' + path });\n      }\n    }\n  } catch {\n    return deepEntries;\n  }\n\n  return deepEntries;\n};\n\nconst outputItems = [];\n\ninputItems.forEach((item, sourceIndex) => {\n  const row = item.json || {};\n  const seedCanonicalSet = new Set();\n  const seedCandidates = [];\n\n  const pushSeed = (url, sourceTag) => {\n    if (!url || seedCandidates.length >= maxSeedUrlsPerRow) return;\n\n    const key = canonicalUrlKey(url);\n    if (!key || seedCanonicalSet.has(key)) return;\n\n    seedCanonicalSet.add(key);\n    seedCandidates.push({ url, sourceTag });\n  };\n\n  for (const key of preferredKeys) {\n    if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    if (!Object.prototype.hasOwnProperty.call(row, key)) continue;\n\n    const urls = extractUrlTokens(row[key]);\n    for (const url of urls) {\n      pushSeed(url, 'key:' + key);\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const [key, value] of Object.entries(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      if (!hintKeyRegex.test(key)) continue;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'hint:' + key);\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const value of Object.values(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'any-value');\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  if (seedCandidates.length === 0) {\n    const fallback = normalizeUrl(buildSearchFallbackUrl(row));\n    if (fallback) {\n      pushSeed(fallback, 'search-fallback');\n    }\n  }\n\n  const crawlSet = new Set();\n  const crawlEntries = [];\n\n  const pushCrawl = (entry, seed, seedIndex) => {\n    if (!entry?.url || crawlEntries.length >= maxCrawlUrlsPerRow) return;\n\n    const key = canonicalUrlKey(entry.url);\n    if (!key || crawlSet.has(key)) return;\n\n    crawlSet.add(key);\n\n    let targetHost = '';\n    try {\n      targetHost = new URL(entry.url).hostname.replace(/^www\\./i, '').toLowerCase();\n    } catch {\n      targetHost = '';\n    }\n\n    crawlEntries.push({\n      json: {\n        ...row,\n        targetUrl: entry.url,\n        targetHost,\n        seed_url: seed.url,\n        seed_source: seed.sourceTag,\n        crawl_depth: entry.depth,\n        url_source: entry.depth === 0 ? seed.sourceTag : entry.source,\n        url_detected: true,\n        source_row_index: sourceIndex,\n        source_url_rank: seedIndex + 1,\n        source_urls_count: seedCandidates.length,\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  };\n\n  const deepPerSeed = [];\n\n  for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n    const seed = seedCandidates[seedIndex];\n    pushCrawl({ url: seed.url, depth: 0, source: 'seed' }, seed, seedIndex);\n    deepPerSeed[seedIndex] = buildDeepEntries(seed.url);\n  }\n\n  let deepCursor = 0;\n  let addedAny = true;\n\n  while (crawlEntries.length < maxCrawlUrlsPerRow && addedAny) {\n    addedAny = false;\n\n    for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n      if (crawlEntries.length >= maxCrawlUrlsPerRow) break;\n\n      const deepList = deepPerSeed[seedIndex] || [];\n      const deepEntry = deepList[deepCursor];\n      if (!deepEntry) continue;\n\n      pushCrawl(deepEntry, seedCandidates[seedIndex], seedIndex);\n      addedAny = true;\n    }\n\n    deepCursor += 1;\n  }\n\n  if (crawlEntries.length === 0) {\n    outputItems.push({\n      json: {\n        ...row,\n        targetUrl: '',\n        targetHost: '',\n        seed_url: '',\n        seed_source: 'none',\n        crawl_depth: 0,\n        url_source: 'none',\n        url_detected: false,\n        source_row_index: sourceIndex,\n        source_url_rank: 1,\n        source_urls_count: 1,\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  } else {\n    outputItems.push(...crawlEntries);\n  }\n});\n\nreturn outputItems;"
+        "jsCode": "const inputItems = $input.all();\n\nconst websiteKeys = [\n  'Веб-сайт 1', 'Веб-сайт 2', 'Веб-сайт 3', 'Веб-сайт',\n  'Сайт 1', 'Сайт 2', 'Сайт 3', 'Сайт',\n  'Website 1', 'Website 2', 'Website 3', 'Website',\n  'Site 1', 'Site 2', 'Site 3', 'Site',\n  'URL', 'Url', 'url', 'Домен', 'Domain',\n  'Главная страница', 'Homepage'\n];\n\nconst vkKeys = [\n  'ВКонтакте', 'Вконтакте', 'VK', 'vk', 'VK URL', 'vk_url',\n  'ВК', 'Группа ВК', 'Сообщество', 'Community'\n];\n\nconst telegramKeys = [\n  'Telegram', 'telegram', 'Телеграм', 'Telegram URL', 'telegram_url',\n  'Канал', 'TG', 'tg', 'Telegram канал', 'Канал Telegram'\n];\n\nconst otherUrlKeys = [\n  '2GIS URL', '2ГИС', '2gis', 'Yandex URL', 'Я.Карты', 'Яндекс.Карты',\n  'Карта', 'Map URL', 'Instagram', 'instagram', 'Facebook', 'facebook'\n];\n\nconst preferredKeys = [...websiteKeys, ...vkKeys, ...telegramKeys, ...otherUrlKeys];\n\nconst hintKeyRegex = /(сайт|веб|website|site|url|домен|вконтакте|\\bвк\\b|\\bvk\\b|telegram|телеграм|канал|t\\.me|instagram|инстаграм|facebook|2gis|2гис|yandex|яндекс|карт)/i;\n\nconst vkHostRegex = /^(?:www\\.|m\\.)?vk\\.(?:com|ru)$/i;\nconst telegramHostRegex = /^(?:www\\.)?(?:t\\.me|telegram\\.me|telegram\\.org)$/i;\nconst blockedSocialHostRegex = /^(?:www\\.)?(?:facebook\\.com|instagram\\.com|linkedin\\.com|twitter\\.com|x\\.com|youtube\\.com|tiktok\\.com|ok\\.ru|pinterest\\.com|threads\\.net|2gis\\.ru|2gis\\.com|2gis\\.kz|yandex\\.ru|maps\\.yandex\\.ru|google\\.com|maps\\.google\\.com)$/i;\nconst allSocialHostRegex = /^(?:www\\.|m\\.)?(?:vk\\.com|vk\\.ru|t\\.me|telegram\\.me|telegram\\.org|facebook\\.com|instagram\\.com|linkedin\\.com|twitter\\.com|x\\.com|youtube\\.com|tiktok\\.com|ok\\.ru)$/i;\n\nconst deepPaths = [\n  '/contacts', '/contact', '/contact-us', '/contact_us',\n  '/kontakty', '/kontakti', '/kontakt',\n  '/about', '/about-us', '/about_us', '/о-нас', '/o-nas', '/o-kompanii', '/о-компании',\n  '/info', '/help', '/support', '/podderzhka',\n  '/team', '/komanda', '/команда',\n  '/company/contacts', '/company/about',\n  '/ru/contacts', '/en/contacts',\n  '/footer', '/feedback', '/svyaz', '/svyazatsya',\n  '/связаться', '/контакты'\n];\n\nconst maxSeedUrlsPerRow = 8;\nconst maxCrawlUrlsPerRow = 30;\n\nconst clean = (value) => String(value ?? '').trim();\n\nconst trimToken = (value) =>\n  clean(value).replace(/^[\\s\"'<>()[\\]{}]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '');\n\nconst looksLikeEmail = (value) =>\n  /^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,24}$/i.test(String(value || '').trim());\n\nconst normalizeUrl = (value) => {\n  let normalized = trimToken(value);\n  if (!normalized) return '';\n\n  if (/^[+\\d\\s().-]{6,}$/.test(normalized)) return '';\n  if (/^\\d+([.,]\\d+)?$/.test(normalized)) return '';\n  if (!/[a-zа-яё]/i.test(normalized)) return '';\n  if (looksLikeEmail(normalized)) return '';\n\n  if (!/^https?:\\/\\//i.test(normalized)) {\n    normalized = 'https://' + normalized.replace(/^\\/+/, '');\n  }\n\n  try {\n    const parsed = new URL(normalized);\n    const host = parsed.hostname;\n    if (!host || !host.includes('.')) return '';\n    if (!/[a-z]/i.test(host)) return '';\n    if (host.length < 4) return '';\n    if (parsed.username || parsed.password) return '';\n    parsed.hash = '';\n    return parsed.toString();\n  } catch {\n    return '';\n  }\n};\n\nconst canonicalUrlKey = (url) => {\n  try {\n    const parsed = new URL(url);\n    const host = parsed.hostname.toLowerCase().replace(/^www\\./, '');\n    const pathname = parsed.pathname.replace(/\\/+$/g, '') || '/';\n    const search = parsed.search || '';\n    return host + pathname + search;\n  } catch {\n    return String(url || '').toLowerCase();\n  }\n};\n\nconst extractUrlTokens = (value) => {\n  const raw = clean(value);\n  if (!raw) return [];\n\n  const sanitized = raw.replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,24}/gi, ' ');\n\n  const tokens = new Set();\n\n  const splitParts = sanitized\n    .split(/[\\n,;|]+/)\n    .map(trimToken)\n    .filter(Boolean);\n\n  for (const part of splitParts) {\n    const normalized = normalizeUrl(part);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const directMatches = sanitized.match(/https?:\\/\\/[^\\s\"'<>]+/gi) || [];\n  for (const match of directMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const domainMatches = sanitized.match(/(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:\\/[^\\s\"'<>]*)?/gi) || [];\n  for (const match of domainMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  return Array.from(tokens);\n};\n\nconst buildDeepEntries = (seedUrl) => {\n  const deepEntries = [];\n\n  let parsed;\n  try {\n    parsed = new URL(seedUrl);\n  } catch {\n    return deepEntries;\n  }\n\n  const host = parsed.hostname.toLowerCase();\n\n  if (vkHostRegex.test(host)) {\n    const slug = parsed.pathname.replace(/^\\/+|\\/+$/g, '');\n    if (slug) {\n      const mobileUrl = normalizeUrl('https://m.vk.com/' + slug);\n      if (mobileUrl) {\n        deepEntries.push({ url: mobileUrl, depth: 1, source: 'vk-mobile' });\n      }\n      const desktopUrl = normalizeUrl('https://vk.com/' + slug);\n      if (desktopUrl && canonicalUrlKey(desktopUrl) !== canonicalUrlKey(seedUrl)) {\n        deepEntries.push({ url: desktopUrl, depth: 1, source: 'vk-desktop' });\n      }\n    }\n    return deepEntries;\n  }\n\n  if (telegramHostRegex.test(host)) {\n    const slug = parsed.pathname.replace(/^\\/+|\\/+$/g, '').split('/')[0];\n    if (slug && slug !== 's' && !slug.startsWith('joinchat') && !slug.startsWith('+')) {\n      const previewUrl = normalizeUrl('https://t.me/s/' + slug);\n      if (previewUrl) {\n        deepEntries.push({ url: previewUrl, depth: 1, source: 'telegram-preview' });\n      }\n      const directUrl = normalizeUrl('https://t.me/' + slug);\n      if (directUrl && canonicalUrlKey(directUrl) !== canonicalUrlKey(seedUrl)) {\n        deepEntries.push({ url: directUrl, depth: 1, source: 'telegram-direct' });\n      }\n    }\n    return deepEntries;\n  }\n\n  if (blockedSocialHostRegex.test(host)) {\n    return deepEntries;\n  }\n\n  const origin = parsed.origin;\n  for (const path of deepPaths) {\n    const deepUrl = normalizeUrl(origin + path);\n    if (deepUrl) {\n      deepEntries.push({ url: deepUrl, depth: 1, source: 'deep:' + path });\n    }\n  }\n\n  return deepEntries;\n};\n\nconst outputItems = [];\n\ninputItems.forEach((item, sourceIndex) => {\n  const row = item.json || {};\n  const seedCanonicalSet = new Set();\n  const seedCandidates = [];\n\n  const pushSeed = (url, sourceTag) => {\n    if (!url || seedCandidates.length >= maxSeedUrlsPerRow) return;\n\n    const key = canonicalUrlKey(url);\n    if (!key || seedCanonicalSet.has(key)) return;\n\n    seedCanonicalSet.add(key);\n    seedCandidates.push({ url, sourceTag });\n  };\n\n  const expandHandles = (key, rawValue) => {\n    const text = clean(rawValue);\n    if (!text) return [];\n\n    const isVkKey = vkKeys.includes(key);\n    const isTelegramKey = telegramKeys.includes(key);\n    if (!isVkKey && !isTelegramKey) return [];\n\n    const out = [];\n    const tokens = text.split(/[\\s,;|]+/).map((t) => t.trim()).filter(Boolean);\n\n    for (const token of tokens) {\n      const handle = token.replace(/^@+/, '').replace(/^https?:\\/\\//i, '').replace(/[^a-zA-Z0-9_./-]/g, '');\n      if (!handle || handle.length < 3 || handle.length > 64) continue;\n      if (/\\./.test(handle) && /^[a-z0-9-]+\\.[a-z]{2,}/i.test(handle)) continue;\n      const slug = handle.split('/').filter(Boolean)[0];\n      if (!slug) continue;\n\n      if (isTelegramKey) {\n        const url = normalizeUrl('https://t.me/' + slug);\n        if (url) out.push(url);\n      }\n      if (isVkKey) {\n        const url = normalizeUrl('https://vk.com/' + slug);\n        if (url) out.push(url);\n      }\n    }\n\n    return out;\n  };\n\n  for (const key of preferredKeys) {\n    if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    if (!Object.prototype.hasOwnProperty.call(row, key)) continue;\n\n    const urls = extractUrlTokens(row[key]);\n    for (const url of urls) {\n      pushSeed(url, 'key:' + key);\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    }\n\n    const handleUrls = expandHandles(key, row[key]);\n    for (const url of handleUrls) {\n      pushSeed(url, 'handle:' + key);\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const [key, value] of Object.entries(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      if (!hintKeyRegex.test(key)) continue;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'hint:' + key);\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const value of Object.values(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'any-value');\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  const crawlSet = new Set();\n  const crawlEntries = [];\n\n  const pushCrawl = (entry, seed, seedIndex) => {\n    if (!entry?.url || crawlEntries.length >= maxCrawlUrlsPerRow) return;\n\n    const key = canonicalUrlKey(entry.url);\n    if (!key || crawlSet.has(key)) return;\n\n    crawlSet.add(key);\n\n    let targetHost = '';\n    let isSocial = false;\n    try {\n      const parsed = new URL(entry.url);\n      targetHost = parsed.hostname.replace(/^www\\./i, '').toLowerCase();\n      isSocial = allSocialHostRegex.test(parsed.hostname);\n    } catch {\n      targetHost = '';\n    }\n\n    crawlEntries.push({\n      json: {\n        ...row,\n        targetUrl: entry.url,\n        targetHost,\n        targetIsSocial: isSocial,\n        seed_url: seed.url,\n        seed_source: seed.sourceTag,\n        crawl_depth: entry.depth,\n        url_source: entry.depth === 0 ? seed.sourceTag : entry.source,\n        url_detected: true,\n        source_row_index: sourceIndex,\n        source_row_number: row.row_number ?? '',\n        source_url_rank: seedIndex + 1,\n        source_urls_count: seedCandidates.length,\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  };\n\n  const deepPerSeed = [];\n\n  for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n    const seed = seedCandidates[seedIndex];\n    pushCrawl({ url: seed.url, depth: 0, source: 'seed' }, seed, seedIndex);\n    deepPerSeed[seedIndex] = buildDeepEntries(seed.url);\n  }\n\n  let deepCursor = 0;\n  let addedAny = true;\n\n  while (crawlEntries.length < maxCrawlUrlsPerRow && addedAny) {\n    addedAny = false;\n\n    for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n      if (crawlEntries.length >= maxCrawlUrlsPerRow) break;\n\n      const deepList = deepPerSeed[seedIndex] || [];\n      const deepEntry = deepList[deepCursor];\n      if (!deepEntry) continue;\n\n      pushCrawl(deepEntry, seedCandidates[seedIndex], seedIndex);\n      addedAny = true;\n    }\n\n    deepCursor += 1;\n  }\n\n  if (crawlEntries.length === 0) {\n    outputItems.push({\n      json: {\n        ...row,\n        targetUrl: '',\n        targetHost: '',\n        targetIsSocial: false,\n        seed_url: '',\n        seed_source: 'none',\n        crawl_depth: 0,\n        url_source: 'none',\n        url_detected: false,\n        source_row_index: sourceIndex,\n        source_row_number: row.row_number ?? '',\n        source_url_rank: 1,\n        source_urls_count: 0,\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  } else {\n    outputItems.push(...crawlEntries);\n  }\n});\n\nreturn outputItems;\n"
       },
       "id": "5",
       "name": "Select URL",
@@ -92,7 +92,7 @@
       "typeVersion": 2,
       "position": [
         1120,
-        180
+        220
       ]
     },
     {
@@ -100,7 +100,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"targetUrl\"]}}",
+              "value1": "={{ ($json[\"targetUrl\"] || \"\").toString().trim() }}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -109,18 +109,18 @@
         "combineOperation": "all"
       },
       "id": "6",
-      "name": "Valid URL?",
+      "name": "Has URL?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
         1320,
-        180
+        220
       ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ (() => { const raw = $json[\"targetUrl\"] || $json[\"Веб-сайт 1\"] || $json[\"Веб-сайт 2\"] || $json[\"Веб-сайт 3\"] || $json[\"Веб-сайт\"] || $json[\"2GIS URL\"] || $json[\"Website 1\"] || $json[\"Website 2\"] || $json[\"Website 3\"] || $json[\"Website\"] || $json[\"URL\"] || $json[\"Url\"] || $json[\"url\"] || \"https://duckduckgo.com/\"; const v = String(raw ?? \"\").trim(); if (!v) return \"https://duckduckgo.com/\"; return /^https?:\\/\\//i.test(v) ? v : `https://${v.replace(/^\\/+/,'')}`; })() }}",
+        "url": "={{ $json[\"targetUrl\"] }}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -131,16 +131,53 @@
             },
             {
               "name": "Accept",
-              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
             },
             {
               "name": "Accept-Language",
               "value": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "name": "Sec-Fetch-Dest",
+              "value": "document"
+            },
+            {
+              "name": "Sec-Fetch-Mode",
+              "value": "navigate"
+            },
+            {
+              "name": "Sec-Fetch-Site",
+              "value": "none"
+            },
+            {
+              "name": "Sec-Fetch-User",
+              "value": "?1"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            },
+            {
+              "name": "Cookie",
+              "value": "remixlang=0"
             }
           ]
         },
         "options": {
           "timeout": 45000,
+          "allowUnauthorizedCerts": true,
           "redirect": {
             "redirect": {
               "followRedirects": true,
@@ -163,7 +200,7 @@
       "typeVersion": 4,
       "position": [
         1520,
-        180
+        220
       ],
       "continueOnFail": true
     },
@@ -171,15 +208,45 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const inputItems = $input.all();\nlet sourceItems = [];\ntry {\n  sourceItems = $items('Select URL', 0, $runIndex) || [];\n} catch {\n  sourceItems = [];\n}\nconst emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}/gi;\nconst obfuscatedEmailRegex = /([a-z0-9._%+-]+)\\s*(?:\\[at\\]|\\(at\\)|\\sat\\s|\\{@\\})\\s*([a-z0-9.-]+)\\s*(?:\\[dot\\]|\\(dot\\)|\\sdot\\s|\\{\\.\\})\\s*([a-z]{2,})/gi;\n\nconst blockedDomains = [\n  '2gis.ru',\n  'wixpress.com',\n  'sentry.io',\n  'cloudflare.com',\n  'google.com',\n  'google.ru',\n  'yandex.ru',\n  'duckduckgo.com',\n  'bing.com',\n  'example.com',\n  'example.org',\n  'example.net'\n];\n\nconst blockedLocalStarts = ['noreply', 'no-reply', 'donotreply', 'do-not-reply'];\n\nconst normalizeEmail = (value) =>\n  String(value)\n    .toLowerCase()\n    .replace(/^[\\s\"'<>()[\\]{}.,;:!]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '');\n\nconst isBlocked = (email) => {\n  if (!email || !email.includes('@')) return true;\n\n  const [local, domainRaw] = email.split('@');\n  const domain = String(domainRaw || '').toLowerCase();\n  const localPart = String(local || '').toLowerCase();\n\n  if (!localPart || !domain) return true;\n  if (blockedLocalStarts.some((prefix) => localPart.startsWith(prefix))) return true;\n\n  return blockedDomains.some((blocked) => domain === blocked || domain.endsWith('.' + blocked));\n};\n\nconst resolvePairedIndex = (item, fallbackIndex) => {\n  const paired = item.pairedItem;\n\n  if (typeof paired === 'number') return paired;\n  if (paired && typeof paired === 'object' && typeof paired.item === 'number') return paired.item;\n  if (Array.isArray(paired) && paired[0] && typeof paired[0].item === 'number') return paired[0].item;\n\n  return fallbackIndex;\n};\n\nconst decodeHtmlEntitiesLite = (text) =>\n  String(text)\n    .replace(/&commat;/gi, '@')\n    .replace(/&#64;/g, '@')\n    .replace(/&#x40;/gi, '@')\n    .replace(/&dot;/gi, '.')\n    .replace(/&#46;/g, '.')\n    .replace(/&#x2e;/gi, '.');\n\nconst extractEmailsFromText = (text) => {\n  const found = new Set();\n\n  const raw = String(text || '');\n  const decodedEntity = decodeHtmlEntitiesLite(raw);\n  let decodedUri = decodedEntity;\n\n  try {\n    decodedUri = decodeURIComponent(decodedEntity);\n  } catch {\n    decodedUri = decodedEntity;\n  }\n\n  const variants = [raw, decodedEntity, decodedUri];\n\n  for (const variant of variants) {\n    const normalizedVariant = String(variant || '');\n\n    const normalMatches = normalizedVariant.match(emailRegex) || [];\n    for (const match of normalMatches) {\n      const email = normalizeEmail(match);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n\n    const mailtoMatches = normalizedVariant.match(/mailto:[^\\s\"'<>]+/gi) || [];\n    for (const match of mailtoMatches) {\n      const rawMail = match.replace(/^mailto:/i, '').split('?')[0];\n      const email = normalizeEmail(rawMail);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n\n    for (const obf of normalizedVariant.matchAll(obfuscatedEmailRegex)) {\n      const local = normalizeEmail(obf[1] || '');\n      const domain = normalizeEmail(obf[2] || '');\n      const zone = normalizeEmail(obf[3] || '');\n      const reconstructed = normalizeEmail(local + '@' + domain + '.' + zone);\n      if (reconstructed && !isBlocked(reconstructed)) found.add(reconstructed);\n    }\n  }\n\n  return Array.from(found);\n};\n\nconst buckets = new Map();\n\nfor (let idx = 0; idx < inputItems.length; idx++) {\n  const item = inputItems[idx];\n  const inputIndex = resolvePairedIndex(item, idx);\n  const sourceRow = sourceItems[inputIndex]?.json || {};\n  const currentJson = item.json || {};\n  const mergedJson = { ...sourceRow, ...currentJson };\n\n  const explicitSourceIndex = Number(mergedJson.source_row_index);\n  const sourceIndex = Number.isInteger(explicitSourceIndex) && explicitSourceIndex >= 0\n    ? explicitSourceIndex\n    : inputIndex;\n\n  if (!buckets.has(sourceIndex)) {\n    buckets.set(sourceIndex, {\n      mergedJson: { ...mergedJson },\n      emailsSet: new Set(),\n      fetchedUrls: new Set(),\n      hasFetchError: false,\n    });\n  }\n\n  const bucket = buckets.get(sourceIndex);\n  bucket.mergedJson = { ...bucket.mergedJson, ...mergedJson };\n\n  const htmlRaw = String(\n    mergedJson.html ?? mergedJson.body ?? mergedJson.data ?? mergedJson.response ?? ''\n  );\n\n  const prepared = htmlRaw\n    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<!--([\\s\\S]*?)-->/g, ' ');\n\n  const extracted = extractEmailsFromText(prepared);\n  for (const email of extracted) {\n    bucket.emailsSet.add(email);\n  }\n\n  const fetchedUrl = String(mergedJson.targetUrl || '').trim();\n  if (fetchedUrl) bucket.fetchedUrls.add(fetchedUrl);\n\n  if (mergedJson.error) {\n    bucket.hasFetchError = true;\n  }\n}\n\nconst sourceIndexes = Array.from(buckets.keys()).sort((a, b) => a - b);\n\nreturn sourceIndexes.map((sourceIndex) => {\n  const bucket = buckets.get(sourceIndex);\n  const mergedJson = { ...bucket.mergedJson };\n  const deduped = Array.from(bucket.emailsSet);\n\n  mergedJson.source_row_index = sourceIndex;\n  mergedJson.parsed_urls = Array.from(bucket.fetchedUrls);\n  mergedJson.parsed_urls_count = mergedJson.parsed_urls.length;\n\n  mergedJson.emails_array = deduped;\n  mergedJson.emails_string = deduped.join(', ');\n  mergedJson.email_1 = deduped[0] || '';\n  mergedJson.email_2 = deduped[1] || '';\n  mergedJson.email_3 = deduped[2] || '';\n  mergedJson.ID = mergedJson.ID ?? '';\n\n  mergedJson.parse_status = deduped.length > 0\n    ? 'emails_found'\n    : bucket.hasFetchError\n      ? 'fetch_error_or_no_email'\n      : 'no_email_found';\n\n  delete mergedJson.html;\n  delete mergedJson.body;\n  delete mergedJson.data;\n  delete mergedJson.response;\n\n  return {\n    json: mergedJson,\n    pairedItem: { item: sourceIndex },\n  };\n});"
+        "jsCode": "const items = $input.all();\nreturn items.map((item, idx) => {\n  const j = item.json || {};\n  const out = { ...j };\n  if (out.html && typeof out.html === 'object') {\n    if (typeof out.html.body === 'string') {\n      out.statusCode = out.html.statusCode ?? out.statusCode ?? 0;\n      out.html = out.html.body;\n    } else {\n      try { out.html = JSON.stringify(out.html); } catch { out.html = String(out.html); }\n    }\n  }\n  if (typeof out.html !== 'string') out.html = out.html == null ? '' : String(out.html);\n  if (!out.statusCode && j.body && typeof j.body === 'string' && !out.html) out.html = j.body;\n  return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n});"
+      },
+      "id": "14",
+      "name": "Normalize Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const inputItems = $input.all();\n\nconst emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,24}/gi;\n\nconst obfuscatedEmailRegexEn =\n  /([a-z0-9._%+-]+)\\s*(?:\\[at\\]|\\(at\\)|\\{at\\}|\\sat\\s|\\{@\\}|＠|＠)\\s*([a-z0-9.-]+)\\s*(?:\\[dot\\]|\\(dot\\)|\\{dot\\}|\\sdot\\s|\\{\\.\\}|．)\\s*([a-z]{2,24})/gi;\n\nconst obfuscatedEmailRegexRu =\n  /([a-z0-9._%+-]+)\\s*(?:\\[собака\\]|\\(собака\\)|\\{собака\\}|\\sсобака\\s|\\[собачка\\]|\\(собачка\\)|\\sсобачка\\s|\\[at\\]|\\(at\\)|\\sat\\s)\\s*([a-z0-9.-]+)\\s*(?:\\[точка\\]|\\(точка\\)|\\{точка\\}|\\sточка\\s|\\[dot\\]|\\(dot\\)|\\sdot\\s)\\s*([a-z]{2,24})/gi;\n\nconst cfemailAttrRegex = /data-cfemail=[\"']([a-f0-9]{4,})[\"']/gi;\nconst mailtoRegex = /mailto:([^\\s\"'<>?]+)/gi;\n\nconst blockedDomains = [\n  '2gis.ru', '2gis.com', '2gis.kz',\n  'wixpress.com', 'wix.com',\n  'sentry.io', 'sentry-cdn.com',\n  'cloudflare.com', 'cloudfront.net',\n  'google.com', 'google.ru', 'googleapis.com', 'googleusercontent.com', 'gstatic.com', 'googletagmanager.com', 'google-analytics.com', 'doubleclick.net', 'googlesyndication.com',\n  'yandex.net',\n  'duckduckgo.com', 'bing.com',\n  'example.com', 'example.org', 'example.net', 'example.ru', 'domain.com', 'domain.ru', 'site.ru', 'mail.com',\n  'sentry-next.wixpress.com', 'parastorage.com',\n  'jsdelivr.net', 'unpkg.com', 'jquery.com',\n  'w3.org', 'schema.org',\n  'facebook.com', 'fbcdn.net', 'instagram.com', 'twitter.com',\n  'youtube.com', 'youtu.be', 'ytimg.com',\n  'vk.com', 'vk.ru', 'vkuser.net', 'vkuseraudio.net',\n  't.me', 'telegram.org',\n  'sentry-cdn.com', 'segment.io', 'segment.com', 'amplitude.com', 'mixpanel.com', 'hotjar.com', 'newrelic.com',\n  'tilda.cc', 'tildacdn.com', 'tildacdn.info',\n  'bitrix24.ru', 'bitrix.ru'\n];\n\nconst blockedLocalStarts = [\n  'noreply', 'no-reply', 'no_reply',\n  'donotreply', 'do-not-reply', 'do_not_reply',\n  'mailer-daemon', 'postmaster', 'abuse',\n  'wixsite', 'support@wix', 'hello@wix'\n];\n\nconst blockedExactPatterns = [\n  /^[a-f0-9]{16,}@/i,\n  /^[a-z0-9]{20,}@/i,\n  /sentry/i,\n  /\\.png$|\\.jpg$|\\.jpeg$|\\.gif$|\\.svg$|\\.webp$|\\.ico$/i,\n  /@[0-9]+x\\./i,\n  /@2x|@3x/i\n];\n\nconst validTldRegex = /\\.[a-z]{2,24}$/i;\n\nconst normalizeEmail = (value) =>\n  String(value)\n    .toLowerCase()\n    .replace(/^[\\s\"'<>()[\\]{}.,;:!]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '')\n    .replace(/\\s+/g, '');\n\nconst isBlocked = (email) => {\n  if (!email || !email.includes('@')) return true;\n\n  const atCount = (email.match(/@/g) || []).length;\n  if (atCount !== 1) return true;\n\n  const [local, domainRaw] = email.split('@');\n  const domain = String(domainRaw || '').toLowerCase();\n  const localPart = String(local || '').toLowerCase();\n\n  if (!localPart || !domain) return true;\n  if (localPart.length < 1 || localPart.length > 64) return true;\n  if (domain.length < 4 || domain.length > 253) return true;\n  if (!validTldRegex.test(domain)) return true;\n  if (!domain.includes('.')) return true;\n\n  if (blockedLocalStarts.some((prefix) => localPart.startsWith(prefix))) return true;\n  if (blockedExactPatterns.some((re) => re.test(email))) return true;\n\n  return blockedDomains.some(\n    (blocked) => domain === blocked || domain.endsWith('.' + blocked)\n  );\n};\n\nconst decodeHtmlEntitiesLite = (text) =>\n  String(text)\n    .replace(/&commat;/gi, '@')\n    .replace(/&#0*64;/g, '@')\n    .replace(/&#x0*40;/gi, '@')\n    .replace(/&dot;/gi, '.')\n    .replace(/&#0*46;/g, '.')\n    .replace(/&#x0*2e;/gi, '.')\n    .replace(/&amp;/gi, '&')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&#0*32;/g, ' ');\n\nconst decodeCfEmail = (hex) => {\n  if (!hex || typeof hex !== 'string' || hex.length < 4) return '';\n  try {\n    const r = parseInt(hex.substr(0, 2), 16);\n    if (Number.isNaN(r)) return '';\n    let email = '';\n    for (let n = 2; n < hex.length; n += 2) {\n      const code = parseInt(hex.substr(n, 2), 16);\n      if (Number.isNaN(code)) return '';\n      email += String.fromCharCode(code ^ r);\n    }\n    return email;\n  } catch {\n    return '';\n  }\n};\n\nconst extractFromCfemail = (text) => {\n  const found = new Set();\n  const raw = String(text || '');\n\n  for (const match of raw.matchAll(cfemailAttrRegex)) {\n    const decoded = decodeCfEmail(match[1] || '');\n    if (decoded && decoded.includes('@')) {\n      const email = normalizeEmail(decoded);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n  }\n\n  const cfemailHrefRegex = /\\/cdn-cgi\\/l\\/email-protection#([a-f0-9]{4,})/gi;\n  for (const match of raw.matchAll(cfemailHrefRegex)) {\n    const decoded = decodeCfEmail(match[1] || '');\n    if (decoded && decoded.includes('@')) {\n      const email = normalizeEmail(decoded);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n  }\n\n  return Array.from(found);\n};\n\nconst extractFromJsonLd = (html) => {\n  const found = new Set();\n  const blockRegex = /<script\\b[^>]*type=[\"']application\\/ld\\+json[\"'][^>]*>([\\s\\S]*?)<\\/script>/gi;\n  const raw = String(html || '');\n\n  for (const match of raw.matchAll(blockRegex)) {\n    const jsonText = (match[1] || '').trim();\n    if (!jsonText) continue;\n\n    let parsed;\n    try {\n      parsed = JSON.parse(jsonText);\n    } catch {\n      const innerEmails = jsonText.match(emailRegex) || [];\n      for (const e of innerEmails) {\n        const email = normalizeEmail(e);\n        if (email && !isBlocked(email)) found.add(email);\n      }\n      continue;\n    }\n\n    const visit = (node) => {\n      if (!node) return;\n      if (typeof node === 'string') {\n        const matches = node.match(emailRegex) || [];\n        for (const m of matches) {\n          const email = normalizeEmail(m);\n          if (email && !isBlocked(email)) found.add(email);\n        }\n        return;\n      }\n      if (Array.isArray(node)) {\n        for (const child of node) visit(child);\n        return;\n      }\n      if (typeof node === 'object') {\n        for (const key of Object.keys(node)) visit(node[key]);\n      }\n    };\n\n    visit(parsed);\n  }\n\n  return Array.from(found);\n};\n\nconst extractEmailsFromText = (text) => {\n  const found = new Set();\n\n  const raw = String(text || '');\n  const decodedEntity = decodeHtmlEntitiesLite(raw);\n  let decodedUri = decodedEntity;\n\n  try {\n    decodedUri = decodeURIComponent(decodedEntity);\n  } catch {\n    decodedUri = decodedEntity;\n  }\n\n  const variants = [raw, decodedEntity, decodedUri];\n\n  for (const variant of variants) {\n    const normalizedVariant = String(variant || '');\n\n    const normalMatches = normalizedVariant.match(emailRegex) || [];\n    for (const match of normalMatches) {\n      const email = normalizeEmail(match);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n\n    for (const m of normalizedVariant.matchAll(mailtoRegex)) {\n      const rawMail = (m[1] || '').split('?')[0];\n      const email = normalizeEmail(rawMail);\n      if (email && !isBlocked(email)) found.add(email);\n    }\n\n    for (const obf of normalizedVariant.matchAll(obfuscatedEmailRegexEn)) {\n      const local = normalizeEmail(obf[1] || '');\n      const domain = normalizeEmail(obf[2] || '');\n      const zone = normalizeEmail(obf[3] || '');\n      const reconstructed = normalizeEmail(local + '@' + domain + '.' + zone);\n      if (reconstructed && !isBlocked(reconstructed)) found.add(reconstructed);\n    }\n\n    for (const obf of normalizedVariant.matchAll(obfuscatedEmailRegexRu)) {\n      const local = normalizeEmail(obf[1] || '');\n      const domain = normalizeEmail(obf[2] || '');\n      const zone = normalizeEmail(obf[3] || '');\n      const reconstructed = normalizeEmail(local + '@' + domain + '.' + zone);\n      if (reconstructed && !isBlocked(reconstructed)) found.add(reconstructed);\n    }\n  }\n\n  return Array.from(found);\n};\n\nconst buckets = new Map();\n\nfor (let idx = 0; idx < inputItems.length; idx++) {\n  const item = inputItems[idx];\n  const currentJson = item.json || {};\n\n  const explicitSourceIndex = Number(currentJson.source_row_index);\n  const sourceIndex = Number.isInteger(explicitSourceIndex) && explicitSourceIndex >= 0\n    ? explicitSourceIndex\n    : idx;\n\n  if (!buckets.has(sourceIndex)) {\n    buckets.set(sourceIndex, {\n      mergedJson: { ...currentJson },\n      emailsSet: new Set(),\n      fetchedUrls: new Set(),\n      successUrls: new Set(),\n      hasFetchError: false,\n      maxStatusCode: 0,\n    });\n  }\n\n  const bucket = buckets.get(sourceIndex);\n  bucket.mergedJson = { ...bucket.mergedJson, ...currentJson };\n\n  const htmlRaw = String(\n    currentJson.html ?? currentJson.body ?? currentJson.data ?? currentJson.response ?? ''\n  );\n\n  const statusCode = Number(currentJson.statusCode || currentJson.status || 0);\n  if (statusCode && statusCode > bucket.maxStatusCode) bucket.maxStatusCode = statusCode;\n\n  const prepared = htmlRaw\n    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<!--([\\s\\S]*?)-->/g, ' ');\n\n  const fromText = extractEmailsFromText(prepared);\n  for (const email of fromText) bucket.emailsSet.add(email);\n\n  const fromCfemail = extractFromCfemail(htmlRaw);\n  for (const email of fromCfemail) bucket.emailsSet.add(email);\n\n  const fromJsonLd = extractFromJsonLd(htmlRaw);\n  for (const email of fromJsonLd) bucket.emailsSet.add(email);\n\n  const fetchedUrl = String(currentJson.targetUrl || '').trim();\n  if (fetchedUrl) {\n    bucket.fetchedUrls.add(fetchedUrl);\n    const isSuccess = htmlRaw.length > 0 && (!statusCode || statusCode < 400);\n    if (isSuccess) bucket.successUrls.add(fetchedUrl);\n  }\n\n  if (currentJson.error || (statusCode && statusCode >= 400)) {\n    bucket.hasFetchError = true;\n  }\n  if (!htmlRaw && fetchedUrl) {\n    bucket.hasFetchError = true;\n  }\n}\n\nconst sourceIndexes = Array.from(buckets.keys()).sort((a, b) => a - b);\n\nreturn sourceIndexes.map((sourceIndex) => {\n  const bucket = buckets.get(sourceIndex);\n  const mergedJson = { ...bucket.mergedJson };\n  const newEmails = Array.from(bucket.emailsSet);\n\n  const existing1 = String(mergedJson['E-mail'] ?? mergedJson['E-mail 1'] ?? mergedJson['Email'] ?? '').trim().toLowerCase();\n  const existing2 = String(mergedJson['E-mail 2'] ?? mergedJson['Email 2'] ?? '').trim().toLowerCase();\n  const existing3 = String(mergedJson['E-mail 3'] ?? mergedJson['Email 3'] ?? '').trim().toLowerCase();\n\n  const existingList = [existing1, existing2, existing3].filter(Boolean);\n  const existingSet = new Set(existingList);\n\n  const merged = [];\n  for (const e of existingList) {\n    if (!merged.includes(e)) merged.push(e);\n  }\n  for (const e of newEmails) {\n    if (!merged.includes(e)) merged.push(e);\n  }\n\n  const final1 = merged[0] || '';\n  const final2 = merged[1] || '';\n  const final3 = merged[2] || '';\n\n  const trulyNewEmails = newEmails.filter((e) => !existingSet.has(e));\n\n  mergedJson.source_row_index = sourceIndex;\n  mergedJson.parsed_urls = Array.from(bucket.fetchedUrls);\n  mergedJson.parsed_urls_count = mergedJson.parsed_urls.length;\n  mergedJson.success_urls_count = bucket.successUrls.size;\n  mergedJson.max_status_code = bucket.maxStatusCode;\n\n  mergedJson.emails_array = merged;\n  mergedJson.emails_string = merged.join(', ');\n  mergedJson.new_emails = trulyNewEmails;\n  mergedJson.new_emails_count = trulyNewEmails.length;\n\n  mergedJson.email_1 = final1;\n  mergedJson.email_2 = final2;\n  mergedJson.email_3 = final3;\n  mergedJson.ID = mergedJson.ID ?? '';\n\n  if (newEmails.length > 0) {\n    mergedJson.parse_status = trulyNewEmails.length > 0 ? 'emails_found' : 'emails_unchanged';\n  } else if (bucket.hasFetchError && bucket.successUrls.size === 0) {\n    mergedJson.parse_status = 'fetch_error';\n  } else if (bucket.fetchedUrls.size === 0) {\n    mergedJson.parse_status = 'no_url';\n  } else {\n    mergedJson.parse_status = 'no_email_found';\n  }\n\n  delete mergedJson.html;\n  delete mergedJson.body;\n  delete mergedJson.data;\n  delete mergedJson.response;\n  delete mergedJson.headers;\n\n  return {\n    json: mergedJson,\n    pairedItem: { item: sourceIndex },\n  };\n});\n"
       },
       "id": "8",
       "name": "Extract Emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1720,
-        180
+        1880,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nreturn items.map((item, idx) => {\n  const j = item.json || {};\n  return {\n    json: {\n      ...j,\n      email_1: (j['E-mail'] || j['E-mail 1'] || j['Email'] || '').toString(),\n      email_2: (j['E-mail 2'] || j['Email 2'] || '').toString(),\n      email_3: (j['E-mail 3'] || j['Email 3'] || '').toString(),\n      emails_array: [],\n      emails_string: '',\n      new_emails: [],\n      new_emails_count: 0,\n      parse_status: 'no_url',\n      parsed_urls: [],\n      parsed_urls_count: 0,\n      success_urls_count: 0,\n      max_status_code: 0,\n    },\n    pairedItem: item.pairedItem ?? { item: idx },\n  };\n});"
+      },
+      "id": "15",
+      "name": "Mark No URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        380
       ]
     },
     {
@@ -187,7 +254,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"row_number\"] || ''}}",
+              "value1": "={{ ($json[\"row_number\"] || $json[\"source_row_number\"] || \"\").toString() }}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -196,27 +263,27 @@
         "combineOperation": "all"
       },
       "id": "9",
-      "name": "ID present?",
+      "name": "Has row_number?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1920,
-        180
+        2080,
+        220
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const inputItems = $input.all();\ninputItems.forEach((item) => {\n  console.log('Missing row_number and ID, skipping row', item.json);\n});\nreturn inputItems;"
+        "jsCode": "const items = $input.all();\nfor (const item of items) {\n  console.log('[Astra] No row_number/ID for row', JSON.stringify({\n    name: item.json.Наименование || item.json.name,\n    parse_status: item.json.parse_status,\n    parsed_urls_count: item.json.parsed_urls_count,\n  }));\n}\nreturn items;"
       },
       "id": "10",
-      "name": "Log Missing ID",
+      "name": "Log Skipped",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1920,
-        360
+        2080,
+        420
       ]
     },
     {
@@ -234,28 +301,32 @@
         },
         "dataMode": "defineBelow",
         "columnToMatchOn": "row_number",
-        "valueToMatchOn": "={{$json[\"row_number\"] || \"\"}}",
+        "valueToMatchOn": "={{ ($json[\"row_number\"] || $json[\"source_row_number\"] || \"\").toString() }}",
         "fieldsUi": {
           "values": [
             {
               "column": "E-mail",
-              "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_1\"] || \"\" }}"
             },
             {
               "column": "E-mail 2",
-              "fieldValue": "={{$json[\"email_2\"] || $json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_2\"] || \"\" }}"
             },
             {
               "column": "E-mail 3",
-              "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_3\"] || \"\" }}"
             },
             {
               "column": "parse_status",
-              "fieldValue": "={{$json[\"parse_status\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"parse_status\"] || \"\" }}"
             },
             {
               "column": "parsed_urls_count",
-              "fieldValue": "={{$json[\"parsed_urls_count\"] || 0}}"
+              "fieldValue": "={{ $json[\"parsed_urls_count\"] || 0 }}"
+            },
+            {
+              "column": "success_urls_count",
+              "fieldValue": "={{ $json[\"success_urls_count\"] || 0 }}"
             }
           ]
         }
@@ -265,16 +336,17 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 3,
       "position": [
-        2120,
-        180
-      ]
+        2280,
+        220
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
           "string": [
             {
-              "value1": "={{$json[\"ID\"] || \"\"}}",
+              "value1": "={{ ($json[\"ID\"] || \"\").toString() }}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -283,12 +355,12 @@
         "combineOperation": "all"
       },
       "id": "12",
-      "name": "ID fallback present?",
+      "name": "Has ID?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2120,
-        360
+        2280,
+        420
       ]
     },
     {
@@ -306,28 +378,32 @@
         },
         "dataMode": "defineBelow",
         "columnToMatchOn": "ID",
-        "valueToMatchOn": "={{$json[\"ID\"] || \"\"}}",
+        "valueToMatchOn": "={{ ($json[\"ID\"] || \"\").toString() }}",
         "fieldsUi": {
           "values": [
             {
               "column": "E-mail",
-              "fieldValue": "={{$json[\"email_1\"] || $json[\"E-mail\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_1\"] || \"\" }}"
             },
             {
               "column": "E-mail 2",
-              "fieldValue": "={{$json[\"email_2\"] || $json[\"E-mail 2\"] || $json[\"Email 2\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_2\"] || \"\" }}"
             },
             {
               "column": "E-mail 3",
-              "fieldValue": "={{$json[\"email_3\"] || $json[\"E-mail 3\"] || $json[\"Email 3\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"email_3\"] || \"\" }}"
             },
             {
               "column": "parse_status",
-              "fieldValue": "={{$json[\"parse_status\"] || \"\"}}"
+              "fieldValue": "={{ $json[\"parse_status\"] || \"\" }}"
             },
             {
               "column": "parsed_urls_count",
-              "fieldValue": "={{$json[\"parsed_urls_count\"] || 0}}"
+              "fieldValue": "={{ $json[\"parsed_urls_count\"] || 0 }}"
+            },
+            {
+              "column": "success_urls_count",
+              "fieldValue": "={{ $json[\"success_urls_count\"] || 0 }}"
             }
           ]
         }
@@ -337,9 +413,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 3,
       "position": [
-        2320,
-        360
-      ]
+        2480,
+        420
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -370,14 +447,14 @@
         [],
         [
           {
-            "node": "E-mail 1 is empty?",
+            "node": "Has Empty Email Slot?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "E-mail 1 is empty?": {
+    "Has Empty Email Slot?": {
       "main": [
         [
           {
@@ -399,14 +476,14 @@
       "main": [
         [
           {
-            "node": "Valid URL?",
+            "node": "Has URL?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Valid URL?": {
+    "Has URL?": {
       "main": [
         [
           {
@@ -417,7 +494,18 @@
         ],
         [
           {
-            "node": "Fetch Website",
+            "node": "Mark No URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark No URL": {
+      "main": [
+        [
+          {
+            "node": "Has row_number?",
             "type": "main",
             "index": 0
           }
@@ -425,6 +513,17 @@
       ]
     },
     "Fetch Website": {
+      "main": [
+        [
+          {
+            "node": "Normalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Response": {
       "main": [
         [
           {
@@ -439,14 +538,14 @@
       "main": [
         [
           {
-            "node": "ID present?",
+            "node": "Has row_number?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "ID present?": {
+    "Has row_number?": {
       "main": [
         [
           {
@@ -457,14 +556,32 @@
         ],
         [
           {
-            "node": "ID fallback present?",
+            "node": "Has ID?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Log Missing ID": {
+    "Has ID?": {
+      "main": [
+        [
+          {
+            "node": "Update Row by ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Skipped": {
       "main": [
         [
           {
@@ -480,24 +597,6 @@
         [
           {
             "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "ID fallback present?": {
-      "main": [
-        [
-          {
-            "node": "Update Row by ID",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log Missing ID",
             "type": "main",
             "index": 0
           }
