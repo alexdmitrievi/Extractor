@@ -333,16 +333,25 @@
     {
       "parameters": {
         "authentication": "oAuth2",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1RDa3Ui_N4wXK5tzeeyNoXjUknjFoT7S62D_j38MyEjk/values:batchUpdate",
-        "method": "POST",
-        "sendBody": true,
-        "contentType": "json",
-        "body": "={{ JSON.stringify({\n  valueInputOption: \"USER_ENTERED\",\n  data: [{\n    range: \"Sheet1!T\" + $json[\"row_number\"] + \":V\" + $json[\"row_number\"],\n    values: [[\n      ($json[\"E-mail\"] || \"\"),\n      ($json[\"E-mail 2\"] || \"\"),\n      ($json[\"E-mail 3\"] || \"\")\n    ]]\n  }]\n}) }}",
-        "options": {}
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "1RDa3Ui_N4wXK5tzeeyNoXjUknjFoT7S62D_j38MyEjk"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "dataMode": "autoMapInputData",
+        "columnToMatchOn": "row_number",
+        "options": {
+          "valueInputMode": "RAW"
+        }
       },
-      "id": "update-row-api",
+      "id": "update-row-sheets",
       "name": "Update Row",
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
         2820,
