@@ -456,14 +456,14 @@
     },
     "Loop Over Items": {
       "main": [
+        [],
         [
           {
             "node": "Has Empty Email Slot?",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Has Empty Email Slot?": {
