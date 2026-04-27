@@ -168,7 +168,9 @@
           "response": {
             "response": {
               "responseFormat": "text",
-              "fullResponse": true
+              "outputPropertyName": "html",
+              "fullResponse": false,
+              "neverError": true
             }
           }
         }
@@ -191,7 +193,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Normalize Response v6\n// fullResponse: true means HTTP Request adds body, statusCode, headers\n// and PRESERVES all original fields (row_number, targetUrl, etc.)\nconst item = $input.item.json || {};\n\n// Extract HTML from fullResponse body\nlet html = item.body || item.html || '';\nif (html && typeof html === 'object') {\n  try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(item.statusCode || 0);\n\n// Keep ALL fields from fullResponse (original data is preserved)\nreturn {\n  json: {\n    ...item,\n    html,\n    statusCode,\n    body: undefined,  // Remove raw body to save space\n  },\n};"
+        "jsCode": "// Normalize Response v7\n// With fullResponse:false + outputPropertyName:'html', HTTP Request node\n// ADDS html property to the existing item WITHOUT removing original fields.\n// So $json already has row_number, targetUrl, source_row_stable_key, etc.\nconst item = $input.item.json || {};\n\nlet html = item.html || '';\nif (html && typeof html === 'object') {\n  try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\n// statusCode: HTTP node doesn't expose it with fullResponse:false\n// We set 200 if we got HTML, 0 otherwise (timeout/error sets empty html)\nconst statusCode = html.length > 0 ? 200 : 0;\n\nreturn {\n  json: {\n    ...item,\n    html,\n    statusCode,\n  },\n};"
       },
       "id": "14",
       "name": "Normalize Response",
