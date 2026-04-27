@@ -394,8 +394,8 @@
     },
     {
       "parameters": {
-        "amount": 250,
-        "unit": "ms"
+        "amount": 0.5,
+        "unit": "seconds"
       },
       "id": "20",
       "name": "Throttle",
