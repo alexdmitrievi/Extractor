@@ -318,7 +318,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    return {\n      json: {\n        // _rowNumber is n8n's reserved identifier for the actual spreadsheet row.\n        // columnToMatchOn: \"_rowNumber\" in Update Row matches by this value.\n        _rowNumber: rowNumber,\n        row_number: rowNumber,  // keep for logging/debugging\n        'E-mail': sanitize(j.email_1),\n        'E-mail 2': sanitize(j.email_2),\n        'E-mail 3': sanitize(j.email_3),\n      },\n      pairedItem: item.pairedItem ?? { item: idx },\n    };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
+        "jsCode": "const items = $input.all();\nconst san = v => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nconst out = items.map((item, idx) => {\n  const j = item.json || {};\n  const row = Number(j.row_number ?? j.source_row_number ?? j.source_row_index ?? 0);\n  if (!Number.isFinite(row) || row < 1) return null;\n  const e1 = san(j.email_1 ?? j['E-mail'] ?? '');\n  const e2 = san(j.email_2 ?? j['E-mail 2'] ?? '');\n  const e3 = san(j.email_3 ?? j['E-mail 3'] ?? '');\n  if (!e1 && !e2 && !e3) return null;\n  return {\n    json: { row_number: row, 'E-mail': e1, 'E-mail 2': e2, 'E-mail 3': e3 },\n    pairedItem: item.pairedItem ?? { item: idx },\n  };\n}).filter(Boolean);\nconsole.log('[PrepareUpdate] in:', items.length, 'out:', out.length, out.length ? JSON.stringify(out[0].json) : '');\nreturn out;"
       },
       "id": "17",
       "name": "Prepare Update",
@@ -333,25 +333,16 @@
     {
       "parameters": {
         "authentication": "oAuth2",
-        "resource": "sheet",
-        "operation": "update",
-        "documentId": {
-          "mode": "id",
-          "value": "1RDa3Ui_N4wXK5tzeeyNoXjUknjFoT7S62D_j38MyEjk"
-        },
-        "sheetName": {
-          "mode": "name",
-          "value": "Sheet1"
-        },
-        "dataMode": "autoMapInputData",
-        "columnToMatchOn": "_rowNumber",
-        "options": {
-          "valueInputMode": "RAW"
-        }
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1RDa3Ui_N4wXK5tzeeyNoXjUknjFoT7S62D_j38MyEjk/values:batchUpdate",
+        "method": "POST",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  valueInputOption: \"USER_ENTERED\",\n  data: [{\n    range: \"Sheet1!T\" + $json[\"row_number\"] + \":V\" + $json[\"row_number\"],\n    values: [[\n      ($json[\"E-mail\"] || \"\"),\n      ($json[\"E-mail 2\"] || \"\"),\n      ($json[\"E-mail 3\"] || \"\")\n    ]]\n  }]\n}) }}",
+        "options": {}
       },
-      "id": "11",
+      "id": "update-row-api",
       "name": "Update Row",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
         2820,
