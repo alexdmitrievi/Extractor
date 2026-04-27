@@ -80,81 +80,81 @@
         300
       ]
     },
-
-    "... файл очень большой (внутри длинные jsCode-строки в JSON узлах Select URL / Extract Emails), поэтому здесь опущены только повторяющиеся неизменённые секции ...",
-
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ ($json[\"row_number\"] || $json[\"source_row_number\"] || \"\").toString().trim() }}",
-              "operation": "isNotEmpty",
-              "value2": ""
-            },
-            {
-              "value1": "={{ ($json[\"ID\"] || \"\").toString().trim() }}",
-              "operation": "isNotEmpty",
-              "value2": ""
-            }
-          ]
-        },
-        "combineOperation": "any"
-      },
-      "id": "9",
-      "name": "Has row key?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        2240,
-        220
-      ]
-    },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    const idRaw = String(j.ID ?? '').trim();\n\n    if ((!Number.isFinite(rowNumber) || rowNumber < 1) && !idRaw) return null;\n\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : ('Email' in j ? 'Email' : 'E-mail'));\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n\n    const out = {};\n    if (idRaw) out.ID = idRaw;\n    if (Number.isFinite(rowNumber) && rowNumber >= 1) out.row_number = rowNumber;\n\n    out[email1Col] = sanitize(j.email_1);\n    out[email2Col] = sanitize(j.email_2);\n    out[email3Col] = sanitize(j.email_3);\n\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
+        "jsCode": "const inputItems = $input.all();\n\nconst websiteKeys = [\n  'Веб-сайт 1', 'Веб-сайт 2', 'Веб-сайт 3', 'Веб-сайт',\n  'Сайт 1', 'Сайт 2', 'Сайт 3', 'Сайт',\n  'Website 1', 'Website 2', 'Website 3', 'Website',\n  'Site 1', 'Site 2', 'Site 3', 'Site',\n  'URL', 'Url', 'url', 'Домен', 'Domain',\n  'Главная страница', 'Homepage'\n];\n\nconst vkKeys = [\n  'ВКонтакте', 'Вконтакте', 'VK', 'vk', 'VK URL', 'vk_url',\n  'ВК', 'Группа ВК', 'Сообщество', 'Community'\n];\n\nconst telegramKeys = [\n  'Telegram 1', 'Telegram 2', 'Telegram 3',\n  'Telegram', 'telegram', 'Телеграм', 'Telegram URL', 'telegram_url',\n  'Канал', 'TG', 'tg', 'Telegram канал', 'Канал Telegram'\n];\n\nconst otherUrlKeys = [\n  '2GIS URL', '2ГИС', '2gis', 'Yandex URL', 'Я.Карты', 'Яндекс.Карты',\n  'Карта', 'Map URL', 'Instagram', 'instagram', 'Facebook', 'facebook',\n  'Twitter', 'twitter', 'YouTube', 'youtube', 'Youtube',\n  'WhatsApp 1', 'WhatsApp 2', 'WhatsApp 3', 'WhatsApp', 'Viber'\n];\n\nconst preferredKeys = [...websiteKeys, ...vkKeys, ...telegramKeys, ...otherUrlKeys];\n\nconst hintKeyRegex = /(сайт|веб|website|site|url|домен|вконтакте|\\bвк\\b|\\bvk\\b|telegram|телеграм|канал|t\\.me|instagram|инстаграм|facebook|2gis|2гис|yandex|яндекс|карт)/i;\n\nconst vkHostRegex = /^(?:www\\.|m\\.)?vk\\.(?:com|ru)$/i;\nconst telegramHostRegex = /^(?:www\\.)?(?:t\\.me|telegram\\.me|telegram\\.org)$/i;\nconst blockedSocialHostRegex = /^(?:www\\.)?(?:facebook\\.com|instagram\\.com|linkedin\\.com|twitter\\.com|x\\.com|youtube\\.com|youtu\\.be|tiktok\\.com|ok\\.ru|pinterest\\.com|threads\\.net|2gis\\.ru|2gis\\.com|2gis\\.kz|yandex\\.ru|maps\\.yandex\\.ru|google\\.com|maps\\.google\\.com|wa\\.me|whatsapp\\.com|api\\.whatsapp\\.com|chat\\.whatsapp\\.com|viber\\.com|viber\\.click|max\\.ru|max\\.me)$/i;\n\nconst seedBlockedHostRegex = /^(?:www\\.)?(?:wa\\.me|whatsapp\\.com|api\\.whatsapp\\.com|chat\\.whatsapp\\.com|viber\\.com|viber\\.click|max\\.ru|max\\.me|youtu\\.be|youtube\\.com|twitter\\.com|x\\.com|tiktok\\.com|pinterest\\.com|threads\\.net)$/i;\nconst allSocialHostRegex = /^(?:www\\.|m\\.)?(?:vk\\.com|vk\\.ru|t\\.me|telegram\\.me|telegram\\.org|facebook\\.com|instagram\\.com|linkedin\\.com|twitter\\.com|x\\.com|youtube\\.com|tiktok\\.com|ok\\.ru)$/i;\n\nconst deepPaths = [\n  '/contacts', '/contact', '/kontakty',\n  '/о-нас', '/o-nas', '/o-kompanii', '/about',\n  '/contact-us', '/about-us',\n  '/контакты', '/связаться',\n  '/info', '/feedback', '/team', '/команда'\n];\n\nconst maxSeedUrlsPerRow = 3;\nconst maxCrawlUrlsPerRow = 8;\nconst maxValueLength = 5000;\n\nconst clean = (value) => {\n  const s = String(value ?? '').trim();\n  return s.length > maxValueLength ? s.slice(0, maxValueLength) : s;\n};\n\nconst trimToken = (value) =>\n  clean(value).replace(/^[\\s\"'<>()[\\]{}]+|[\\s\"'<>()[\\]{}.,;:!]+$/g, '');\n\nconst looksLikeEmail = (value) =>\n  /^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,24}$/i.test(String(value || '').trim());\n\nconst normalizeUrl = (value) => {\n  let normalized = trimToken(value);\n  if (!normalized) return '';\n\n  if (/^[+\\d\\s().-]{6,}$/.test(normalized)) return '';\n  if (/^\\d+([.,]\\d+)?$/.test(normalized)) return '';\n  if (!/[a-zа-яё]/i.test(normalized)) return '';\n  if (looksLikeEmail(normalized)) return '';\n\n  if (!/^https?:\\/\\//i.test(normalized)) {\n    normalized = 'https://' + normalized.replace(/^\\/+/, '');\n  }\n\n  try {\n    const parsed = new URL(normalized);\n    const host = parsed.hostname;\n    if (!host || !host.includes('.')) return '';\n    if (!/[a-z]/i.test(host)) return '';\n    if (host.length < 4) return '';\n    if (parsed.username || parsed.password) return '';\n    if (seedBlockedHostRegex.test(host)) return '';\n    parsed.hash = '';\n    return parsed.toString();\n  } catch {\n    return '';\n  }\n};\n\nconst canonicalUrlKey = (url) => {\n  try {\n    const parsed = new URL(url);\n    const host = parsed.hostname.toLowerCase().replace(/^www\\./, '');\n    const pathname = parsed.pathname.replace(/\\/+$/g, '') || '/';\n    const search = parsed.search || '';\n    return host + pathname + search;\n  } catch {\n    return String(url || '').toLowerCase();\n  }\n};\n\nconst extractUrlTokens = (value) => {\n  const raw = clean(value);\n  if (!raw) return [];\n\n  const sanitized = raw.replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,24}/gi, ' ');\n\n  const tokens = new Set();\n\n  const splitParts = sanitized\n    .split(/[\\n,;|]+/)\n    .map(trimToken)\n    .filter(Boolean);\n\n  for (const part of splitParts) {\n    const normalized = normalizeUrl(part);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const directMatches = sanitized.match(/https?:\\/\\/[^\\s\"'<>]+/gi) || [];\n  for (const match of directMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  const domainMatches = sanitized.match(/(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:\\/[^\\s\"'<>]*)?/gi) || [];\n  for (const match of domainMatches) {\n    const normalized = normalizeUrl(match);\n    if (normalized) tokens.add(normalized);\n  }\n\n  return Array.from(tokens);\n};\n\n\nconst extract2gisFirmId = (url) => {\n  try {\n    const parsed = new URL(url);\n    const host = parsed.hostname.toLowerCase();\n    if (!/(^|\\.)2gis\\.(ru|com|kz)$/.test(host)) return '';\n    const m = parsed.pathname.match(/\\/firm\\/([0-9]{6,})/i);\n    return m ? m[1] : '';\n  } catch {\n    return '';\n  }\n};\n\nconst buildDeepEntries = (seedUrl) => {\n  const deepEntries = [];\n\n  let parsed;\n  try {\n    parsed = new URL(seedUrl);\n  } catch {\n    return deepEntries;\n  }\n\n  const host = parsed.hostname.toLowerCase();\n\n  if (vkHostRegex.test(host)) {\n    const slug = parsed.pathname.replace(/^\\/+|\\/+$/g, '');\n    if (slug) {\n      const mobileUrl = normalizeUrl('https://m.vk.com/' + slug);\n      if (mobileUrl) {\n        deepEntries.push({ url: mobileUrl, depth: 1, source: 'vk-mobile' });\n      }\n      const desktopUrl = normalizeUrl('https://vk.com/' + slug);\n      if (desktopUrl && canonicalUrlKey(desktopUrl) !== canonicalUrlKey(seedUrl)) {\n        deepEntries.push({ url: desktopUrl, depth: 1, source: 'vk-desktop' });\n      }\n    }\n    return deepEntries;\n  }\n\n  if (telegramHostRegex.test(host)) {\n    const slug = parsed.pathname.replace(/^\\/+|\\/+$/g, '').split('/')[0];\n    if (slug && slug !== 's' && !slug.startsWith('joinchat') && !slug.startsWith('+')) {\n      const previewUrl = normalizeUrl('https://t.me/s/' + slug);\n      if (previewUrl) {\n        deepEntries.push({ url: previewUrl, depth: 1, source: 'telegram-preview' });\n      }\n      const directUrl = normalizeUrl('https://t.me/' + slug);\n      if (directUrl && canonicalUrlKey(directUrl) !== canonicalUrlKey(seedUrl)) {\n        deepEntries.push({ url: directUrl, depth: 1, source: 'telegram-direct' });\n      }\n    }\n    return deepEntries;\n  }\n\n  if (blockedSocialHostRegex.test(host)) {\n    return deepEntries;\n  }\n\n  const origin = parsed.origin;\n  for (const path of deepPaths) {\n    const deepUrl = normalizeUrl(origin + path);\n    if (deepUrl) {\n      deepEntries.push({ url: deepUrl, depth: 1, source: 'deep:' + path });\n    }\n  }\n\n  return deepEntries;\n};\n\nconst outputItems = [];\n\ninputItems.forEach((item, sourceIndex) => {\n  try {\n  const row = item.json || {};\n  const dgisApiKey = [row['2GIS API Key'], row['2gis_api_key'], row['dgis_api_key'], row['catalog_api_key']].map((v)=>String(v||'').trim()).find(Boolean) || '';\n  const seedCanonicalSet = new Set();\n  const seedCandidates = [];\n\n  const pushSeed = (url, sourceTag) => {\n    if (!url || seedCandidates.length >= maxSeedUrlsPerRow) return;\n\n    const key = canonicalUrlKey(url);\n    if (!key || seedCanonicalSet.has(key)) return;\n\n    seedCanonicalSet.add(key);\n    seedCandidates.push({ url, sourceTag });\n  };\n\n  const expandHandles = (key, rawValue) => {\n    const text = clean(rawValue);\n    if (!text) return [];\n\n    const isVkKey = vkKeys.includes(key);\n    const isTelegramKey = telegramKeys.includes(key);\n    if (!isVkKey && !isTelegramKey) return [];\n\n    const out = [];\n    const tokens = text.split(/[\\s,;|]+/).map((t) => t.trim()).filter(Boolean);\n\n    for (const token of tokens) {\n      const handle = token.replace(/^@+/, '').replace(/^https?:\\/\\//i, '').replace(/[^a-zA-Z0-9_./-]/g, '');\n      if (!handle || handle.length < 3 || handle.length > 64) continue;\n      if (/\\./.test(handle) && /^[a-z0-9-]+\\.[a-z]{2,}/i.test(handle)) continue;\n      const slug = handle.split('/').filter(Boolean)[0];\n      if (!slug) continue;\n\n      if (isTelegramKey) {\n        const url = normalizeUrl('https://t.me/' + slug);\n        if (url) out.push(url);\n      }\n      if (isVkKey) {\n        const url = normalizeUrl('https://vk.com/' + slug);\n        if (url) out.push(url);\n      }\n    }\n\n    return out;\n  };\n\n  for (const key of preferredKeys) {\n    if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    if (!Object.prototype.hasOwnProperty.call(row, key)) continue;\n\n    const urls = extractUrlTokens(row[key]);\n    for (const url of urls) {\n      pushSeed(url, 'key:' + key);\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    }\n\n    const handleUrls = expandHandles(key, row[key]);\n    for (const url of handleUrls) {\n      pushSeed(url, 'handle:' + key);\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const [key, value] of Object.entries(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      if (!hintKeyRegex.test(key)) continue;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'hint:' + key);\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  if (seedCandidates.length < maxSeedUrlsPerRow) {\n    for (const value of Object.values(row)) {\n      if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n\n      const urls = extractUrlTokens(value);\n      for (const url of urls) {\n        pushSeed(url, 'any-value');\n        if (seedCandidates.length >= maxSeedUrlsPerRow) break;\n      }\n    }\n  }\n\n  const crawlSet = new Set();\n  const crawlEntries = [];\n\n  const pushCrawl = (entry, seed, seedIndex) => {\n    if (!entry?.url || crawlEntries.length >= maxCrawlUrlsPerRow) return;\n\n    const key = canonicalUrlKey(entry.url);\n    if (!key || crawlSet.has(key)) return;\n\n    crawlSet.add(key);\n\n    let targetHost = '';\n    let isSocial = false;\n    try {\n      const parsed = new URL(entry.url);\n      targetHost = parsed.hostname.replace(/^www\\./i, '').toLowerCase();\n      isSocial = allSocialHostRegex.test(parsed.hostname);\n    } catch {\n      targetHost = '';\n    }\n\n    crawlEntries.push({\n      json: {\n        ...row,\n        targetUrl: entry.url,\n        targetHost,\n        targetIsSocial: isSocial,\n        seed_url: seed.url,\n        seed_source: seed.sourceTag,\n        crawl_depth: entry.depth,\n        url_source: entry.depth === 0 ? seed.sourceTag : entry.source,\n        url_detected: true,\n        source_row_index: sourceIndex,\n        source_row_number: row.row_number ?? '',\n        source_url_rank: seedIndex + 1,\n        source_urls_count: seedCandidates.length,\n        dgis_api_key_present: Boolean(dgisApiKey),\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  };\n\n  const deepPerSeed = [];\n\n  for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n    const seed = seedCandidates[seedIndex];\n    pushCrawl({ url: seed.url, depth: 0, source: 'seed' }, seed, seedIndex);\n    const firmId = extract2gisFirmId(seed.url);\n    if (firmId && dgisApiKey) {\n      const apiUrl = normalizeUrl(`https://catalog.api.2gis.com/3.0/items/byid?id=${firmId}&fields=items.contact_groups&key=${encodeURIComponent(dgisApiKey)}`);\n      if (apiUrl) pushCrawl({ url: apiUrl, depth: 0, source: '2gis-api' }, seed, seedIndex);\n    }\n    deepPerSeed[seedIndex] = buildDeepEntries(seed.url);\n  }\n\n  let deepCursor = 0;\n  let addedAny = true;\n\n  while (crawlEntries.length < maxCrawlUrlsPerRow && addedAny) {\n    addedAny = false;\n\n    for (let seedIndex = 0; seedIndex < seedCandidates.length; seedIndex++) {\n      if (crawlEntries.length >= maxCrawlUrlsPerRow) break;\n\n      const deepList = deepPerSeed[seedIndex] || [];\n      const deepEntry = deepList[deepCursor];\n      if (!deepEntry) continue;\n\n      pushCrawl(deepEntry, seedCandidates[seedIndex], seedIndex);\n      addedAny = true;\n    }\n\n    deepCursor += 1;\n  }\n\n  if (crawlEntries.length === 0) {\n    outputItems.push({\n      json: {\n        ...row,\n        targetUrl: '',\n        targetHost: '',\n        targetIsSocial: false,\n        seed_url: '',\n        seed_source: 'none',\n        crawl_depth: 0,\n        url_source: 'none',\n        url_detected: false,\n        source_row_index: sourceIndex,\n        source_row_number: row.row_number ?? '',\n        source_url_rank: 1,\n        source_urls_count: 0,\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  } else {\n    outputItems.push(...crawlEntries);\n  }\n  } catch (err) {\n    outputItems.push({\n      json: {\n        ...(item.json || {}),\n        targetUrl: '',\n        targetHost: '',\n        targetIsSocial: false,\n        seed_url: '',\n        seed_source: 'select-url-error',\n        crawl_depth: 0,\n        url_source: 'error',\n        url_detected: false,\n        source_row_index: sourceIndex,\n        source_row_number: (item.json && item.json.row_number) ?? '',\n        source_url_rank: 1,\n        source_urls_count: 0,\n        select_url_error: String((err && err.message) || err),\n      },\n      pairedItem: { item: sourceIndex },\n    });\n  }\n});\n\nreturn outputItems;\n"
       },
-      "id": "17",
-      "name": "Prepare Update",
+      "id": "5",
+      "name": "Select URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2620,
+        1120,
         220
       ],
       "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "sheet",
-        "operation": "update",
-        "documentId": {
-          "mode": "id",
-          "value": "1gixPFzEKra4XHUz1uFdEw8-pRZR_i1PKQ9qusceJV1o"
-        },
-        "sheetName": {
-          "mode": "name",
-          "value": "Sheet1"
-        },
-        "dataMode": "autoMapInputData",
-        "columnToMatchOn": "ID",
-        "options": {
-          "valueInputMode": "RAW"
-        }
-      },
-      "id": "11",
-      "name": "Update Row",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
-      "position": [
-        2820,
-        220
-      ],
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
     }
-  ]
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Row(s)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Has Empty Email Slot?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Throttle": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "executionTimeout": -1
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "1"
 }
