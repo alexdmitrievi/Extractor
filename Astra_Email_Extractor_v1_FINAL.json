@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "batchSize": 5
+        "batchSize": 3
       },
       "id": "3",
       "name": "Loop Over Items",
@@ -310,6 +310,28 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ Number($json[\"new_emails_count\"] || 0) }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "18",
+      "name": "Has new emails?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        220
+      ]
+    },
+    {
+      "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
         "jsCode": "const items = $input.all();\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowNumber = j.row_number ?? j.source_row_number ?? '';\n    if (rowNumber === '' || rowNumber == null) return null;\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : 'E-mail');\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n    const out = { row_number: rowNumber };\n    out[email1Col] = j.email_1 || '';\n    out[email2Col] = j.email_2 || '';\n    out[email3Col] = j.email_3 || '';\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
@@ -319,8 +341,24 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2440,
+        2620,
         220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nreturn items.map(() => ({ json: {} }));"
+      },
+      "id": "19",
+      "name": "Cleanup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        300
       ],
       "continueOnFail": true
     },
@@ -346,7 +384,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 3,
       "position": [
-        2620,
+        2820,
         220
       ],
       "continueOnFail": true,
@@ -399,7 +437,7 @@
         ],
         [
           {
-            "node": "Loop Over Items",
+            "node": "Cleanup",
             "type": "main",
             "index": 0
           }
@@ -494,7 +532,7 @@
       "main": [
         [
           {
-            "node": "Prepare Update",
+            "node": "Has new emails?",
             "type": "main",
             "index": 0
           }
@@ -502,6 +540,24 @@
         [
           {
             "node": "Log Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has new emails?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cleanup",
             "type": "main",
             "index": 0
           }
@@ -523,7 +579,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Items",
+            "node": "Cleanup",
             "type": "main",
             "index": 0
           }
@@ -531,6 +587,17 @@
       ]
     },
     "Update Row": {
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup": {
       "main": [
         [
           {
@@ -544,7 +611,12 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "executionTimeout": -1
   },
   "meta": {
     "templateCredsSetupCompleted": false
