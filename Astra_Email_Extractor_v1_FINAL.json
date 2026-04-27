@@ -443,13 +443,7 @@
             "index": 0
           }
         ],
-        [
-          {
-            "node": "Has Empty Email Slot?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Has Empty Email Slot?": {
@@ -640,12 +634,12 @@
           {
             "node": "Loop Over Items",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
     }
-  ],
+  },
   "active": false,
   "settings": {
     "executionOrder": "v1",
