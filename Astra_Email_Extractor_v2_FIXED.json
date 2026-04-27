@@ -301,15 +301,15 @@
           "values": [
             {
               "column": "E-mail",
-              "fieldValue": "={{ $json[\"E-mail\"] }}"
+              "fieldValue": "={{ $json[\"E-mail\"] || $json[\"email_1\"] || '' }}"
             },
             {
               "column": "E-mail 2",
-              "fieldValue": "={{ $json[\"E-mail 2\"] }}"
+              "fieldValue": "={{ $json[\"E-mail 2\"] || $json[\"email_2\"] || '' }}"
             },
             {
               "column": "E-mail 3",
-              "fieldValue": "={{ $json[\"E-mail 3\"] }}"
+              "fieldValue": "={{ $json[\"E-mail 3\"] || $json[\"email_3\"] || '' }}"
             }
           ]
         },
