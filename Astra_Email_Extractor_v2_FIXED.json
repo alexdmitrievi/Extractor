@@ -124,14 +124,61 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "language": "javaScript",
-        "jsCode": "// Fetch Website — Code Node v4 (runOnceForEachItem)\r\n// n8n Code node sandbox provides: fetch(), JSON, Promise, console\r\n// NOT available: AbortController, URL constructor, $helpers, setTimeout\r\nconst baseJson = JSON.parse(JSON.stringify($input.item.json || {}));\r\nconst url = String(baseJson.targetUrl || '').trim();\r\n\r\nif (!url) {\r\n  return { json: { ...baseJson, html: '', statusCode: 0 } };\r\n}\r\n\r\ntry {\r\n  const response = await fetch(url, {\r\n    method: 'GET',\r\n    redirect: 'follow',\r\n    headers: {\r\n      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',\r\n      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',\r\n      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',\r\n    },\r\n  });\r\n\r\n  const html = await response.text();\r\n  return {\r\n    json: {\r\n      ...baseJson,\r\n      html,\r\n      statusCode: response.status,\r\n    },\r\n  };\r\n} catch (err) {\r\n  return {\r\n    json: {\r\n      ...baseJson,\r\n      html: '',\r\n      statusCode: 0,\r\n      fetch_error: String(err && err.message || err),\r\n    },\r\n  };\r\n}\r\n"
+        "method": "GET",
+        "url": "={{ $json[\"targetUrl\"] }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "Pragma",
+              "value": "no-cache"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "allowUnauthorizedCerts": true,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "html",
+              "fullResponse": false,
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "7",
       "name": "Fetch Website",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
       "position": [
         1520,
         220
@@ -144,9 +191,9 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
+        "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const out = { ...j };\n    if (out.html && typeof out.html === 'object') {\n      if (typeof out.html.body === 'string') {\n        out.statusCode = out.html.statusCode ?? out.statusCode ?? 0;\n        out.html = out.html.body;\n      } else {\n        try { out.html = JSON.stringify(out.html); } catch { out.html = String(out.html); }\n      }\n    }\n    if (typeof out.html !== 'string') out.html = out.html == null ? '' : String(out.html);\n    if (!out.statusCode && j.body && typeof j.body === 'string' && !out.html) out.html = j.body;\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return { json: { ...(item.json || {}), html: '', normalize_error: String((err && err.message) || err) }, pairedItem: item.pairedItem ?? { item: idx } };\n  }\n});"
+        "jsCode": "// Normalize Response v2\n// HTTP Request node outputs only {html:\"...\"}, losing row_number, targetUrl, etc.\n// We restore original data from the \"Has URL?\" node (last node before the HTTP request).\nconst httpJson = $input.item.json || {};\nconst originalJson = $('Has URL?').item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  if (typeof html.body === 'string') {\n    html = html.body;\n  } else {\n    try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n  }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(httpJson.statusCode || httpJson.status || 0);\n\nreturn {\n  json: {\n    ...originalJson,\n    html,\n    statusCode,\n  },\n};"
       },
       "id": "14",
       "name": "Normalize Response",
