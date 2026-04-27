@@ -421,22 +421,6 @@
         220
       ],
       "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "language": "javaScript",
-        "jsCode": "// Check if HTTP request actually completed\nconst hasHtml = !!($json.html && $json.html.length > 0);\nconst status = Number($json.statusCode || 0);\nconst url = $json.targetUrl || '';\n\nif (!hasHtml && !url) {\n  console.log('[CHECK] Row ' + $json.row_number + ': no URL, skipping');\n  return { json: $json };\n}\n\nif (!hasHtml && status > 0) {\n  console.log('[CHECK] Row ' + $json.row_number + ': HTTP error ' + status + ' for ' + url);\n} else if (!hasHtml) {\n  console.log('[CHECK] Row ' + $json.row_number + ': timeout or no response for ' + url);\n} else {\n  console.log('[CHECK] Row ' + $json.row_number + ': OK, html=' + hasHtml.length + ' bytes');\n}\n\nreturn { json: $json };"
-      },
-      "id": "23",
-      "name": "Check HTML",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1500,
-        220
-      ],
-      "continueOnFail": true
     }
   ],
   "connections": {
@@ -525,7 +509,7 @@
       "main": [
         [
           {
-            "node": "Check HTML",
+            "node": "Normalize Response",
             "type": "main",
             "index": 0
           }
@@ -683,17 +667,6 @@
         [
           {
             "node": "Fetch Website",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check HTML": {
-      "main": [
-        [
-          {
-            "node": "Normalize Response",
             "type": "main",
             "index": 0
           }
