@@ -278,7 +278,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ ($json[\"row_number\"] || $json[\"source_row_number\"] || \"\").toString() }}",
+              "value1": "={{ ( $json[\"row_number\"] ?? $json[\"source_row_number\"] ?? (Number.isFinite(Number($json[\"source_row_index\"])) ? Number($json[\"source_row_index\"]) + 2 : \"\") ).toString() }}",
               "operation": "isNotEmpty",
               "value2": ""
             }
@@ -337,7 +337,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : 'E-mail');\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n    const out = { row_number: rowNumber };\n    out[email1Col] = sanitize(j.email_1);\n    out[email2Col] = sanitize(j.email_2);\n    out[email3Col] = sanitize(j.email_3);\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
+        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? (Number.isFinite(Number(j.source_row_index)) ? Number(j.source_row_index) + 2 : '');\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : 'E-mail');\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n    const out = { row_number: rowNumber };\n    out[email1Col] = sanitize(j.email_1);\n    out[email2Col] = sanitize(j.email_2);\n    out[email3Col] = sanitize(j.email_3);\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
       },
       "id": "17",
       "name": "Prepare Update",
