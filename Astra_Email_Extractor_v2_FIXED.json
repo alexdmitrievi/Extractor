@@ -154,11 +154,15 @@
             {
               "name": "Pragma",
               "value": "no-cache"
+            },
+            {
+              "name": "Connection",
+              "value": "close"
             }
           ]
         },
         "options": {
-          "timeout": 8000,
+          "timeout": 5000,
           "allowUnauthorizedCerts": true,
           "redirect": {
             "redirect": {
@@ -390,6 +394,20 @@
         300
       ],
       "continueOnFail": true
+    },
+    {
+      "id": "filter-rows-v14",
+      "name": "Filter Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        570,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Filter Rows v1 — skip rows with existing email, limit per run\n// Run multiple times to process all rows in a large sheet.\nconst ROWS_LIMIT = 100;\n\nconst items = $input.all();\nconst needsEmail = items.filter(item => !(item.json['E-mail'] || '').toString().trim());\nconst result = needsEmail.slice(0, ROWS_LIMIT);\n\nconsole.log('[FilterRows] total=' + items.length + ' needs_email=' + needsEmail.length + ' processing=' + result.length);\nreturn result;"
+      }
     }
   ],
   "connections": {
@@ -408,7 +426,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Items",
+            "node": "Filter Rows",
             "type": "main",
             "index": 0
           }
@@ -505,6 +523,17 @@
       ]
     },
     "Throttle": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Rows": {
       "main": [
         [
           {
