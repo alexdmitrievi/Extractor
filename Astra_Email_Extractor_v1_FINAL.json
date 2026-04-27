@@ -124,85 +124,14 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ $json[\"targetUrl\"] }}",
-        "authentication": "none",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "User-Agent",
-              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-            },
-            {
-              "name": "Accept",
-              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-            },
-            {
-              "name": "Accept-Language",
-              "value": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
-            },
-            {
-              "name": "Accept-Encoding",
-              "value": "gzip, deflate"
-            },
-            {
-              "name": "Cache-Control",
-              "value": "no-cache"
-            },
-            {
-              "name": "Pragma",
-              "value": "no-cache"
-            },
-            {
-              "name": "Sec-Fetch-Dest",
-              "value": "document"
-            },
-            {
-              "name": "Sec-Fetch-Mode",
-              "value": "navigate"
-            },
-            {
-              "name": "Sec-Fetch-Site",
-              "value": "none"
-            },
-            {
-              "name": "Sec-Fetch-User",
-              "value": "?1"
-            },
-            {
-              "name": "Upgrade-Insecure-Requests",
-              "value": "1"
-            },
-            {
-              "name": "Cookie",
-              "value": "remixlang=0"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 20000,
-          "allowUnauthorizedCerts": true,
-          "redirect": {
-            "redirect": {
-              "followRedirects": true,
-              "maxRedirects": 5
-            }
-          },
-          "response": {
-            "response": {
-              "responseFormat": "text",
-              "outputPropertyName": "html",
-              "fullResponse": false,
-              "neverError": true
-            }
-          }
-        }
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Fetch Website — Code Node v1\r\n// Replaces HTTP Request node to PRESERVE all input item fields.\r\n// ROOT CAUSE: n8n HTTP Request node replaces item.json with response,\r\n// losing source_row_stable_key, row_number, targetUrl, etc.\r\n// This Code node does the same HTTP fetch but keeps all input fields.\r\nconst items = $input.all();\r\nconst output = [];\r\n\r\nfor (let i = 0; i < items.length; i++) {\r\n  const item = items[i];\r\n  // Deep-copy input JSON — preserves row_number, stable_key, targetUrl, all sheet fields\r\n  const baseJson = JSON.parse(JSON.stringify(item.json || {}));\r\n  const url = String(baseJson.targetUrl || '').trim();\r\n\r\n  if (!url) {\r\n    output.push({\r\n      json: { ...baseJson, html: '', statusCode: 0 },\r\n      pairedItem: { item: i },\r\n    });\r\n    continue;\r\n  }\r\n\r\n  try {\r\n    const response = await $helpers.httpRequest({\r\n      method: 'GET',\r\n      url: url,\r\n      returnFullResponse: true,\r\n      ignoreHttpStatusErrors: true,\r\n      headers: {\r\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',\r\n        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',\r\n        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',\r\n        'Cache-Control': 'no-cache',\r\n        'Pragma': 'no-cache',\r\n      },\r\n    });\r\n\r\n    const bodyRaw = response.body;\r\n    const html = typeof bodyRaw === 'string' ? bodyRaw\r\n      : (bodyRaw && typeof bodyRaw === 'object') ? JSON.stringify(bodyRaw)\r\n      : String(bodyRaw || '');\r\n\r\n    output.push({\r\n      json: { ...baseJson, html, statusCode: Number(response.statusCode) || 200 },\r\n      pairedItem: { item: i },\r\n    });\r\n  } catch (err) {\r\n    output.push({\r\n      json: {\r\n        ...baseJson,\r\n        html: '',\r\n        statusCode: 0,\r\n        fetch_error: String(err && err.message || err),\r\n      },\r\n      pairedItem: { item: i },\r\n    });\r\n  }\r\n}\r\n\r\nreturn output;\r\n"
       },
       "id": "7",
       "name": "Fetch Website",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1520,
         220
