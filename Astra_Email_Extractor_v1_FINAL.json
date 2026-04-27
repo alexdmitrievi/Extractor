@@ -345,10 +345,26 @@
           "mode": "name",
           "value": "Sheet1"
         },
-        "dataMode": "autoMapInputData",
+        "dataMode": "defineBelow",
         "columnToMatchOn": "row_number",
         "options": {
           "valueInputMode": "RAW"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "E-mail",
+              "fieldValue": "={{ $json[\"E-mail\"] || $json[\"email_1\"] || '' }}"
+            },
+            {
+              "fieldId": "E-mail 2",
+              "fieldValue": "={{ $json[\"E-mail 2\"] || $json[\"email_2\"] || '' }}"
+            },
+            {
+              "fieldId": "E-mail 3",
+              "fieldValue": "={{ $json[\"E-mail 3\"] || $json[\"email_3\"] || '' }}"
+            }
+          ]
         }
       },
       "id": "11",
@@ -380,18 +396,19 @@
     },
     {
       "parameters": {
-        "amount": 0.5,
-        "unit": "seconds"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Throttle v2 — simple pass-through.\n// The Wait node webhook is consumed after the first loop iteration,\n// causing the workflow to hang on subsequent batches.\n// HTTP requests already provide natural rate-limiting; no artificial delay needed.\nreturn $input.all().map(() => ({ json: {} }));"
       },
       "id": "20",
       "name": "Throttle",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         3220,
         300
       ],
-      "webhookId": "throttle-loop"
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -440,7 +457,7 @@
         ],
         [
           {
-            "node": "Cleanup",
+            "node": "Mark No URL",
             "type": "main",
             "index": 0
           }
