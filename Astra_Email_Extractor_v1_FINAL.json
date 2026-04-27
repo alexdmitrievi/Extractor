@@ -193,7 +193,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Normalize Response v3 - HTTP Request now preserves original fields\nconst httpJson = $input.item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  if (typeof html.body === 'string') {\n    html = html.body;\n  } else {\n    try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n  }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(httpJson.statusCode || httpJson.status || 0);\n\nconsole.log('[NORMALIZE] row=' + httpJson.row_number + ' html_len=' + html.length + ' status=' + statusCode);\n\nreturn {\n  json: {\n    ...httpJson,\n    html,\n    statusCode,\n  },\n};"
+        "jsCode": "// Normalize Response v5\n// HTTP Request outputs {html: \"...\", ...all_original_fields_if_they_survived}\n// But to be safe, we restore critical fields from _original_data\nconst httpJson = $input.item.json || {};\n\n// Parse restored data if it exists\nlet restored = {};\nif (httpJson._original_data) {\n  try { restored = JSON.parse(httpJson._original_data); } catch(e) {}\n}\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(httpJson.statusCode || 0);\n\nconst result = { ...restored, ...httpJson, html, statusCode };\ndelete result._original_data;\ndelete result.body;\n\nconsole.log('[NORM] row=' + result.row_number + ' html=' + (html.length > 0 ? 'YES' : 'NO'));\n\nreturn { json: result };"
       },
       "id": "14",
       "name": "Normalize Response",
@@ -402,6 +402,22 @@
       "typeVersion": 2,
       "position": [
         1520,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// Save original row data before HTTP Request wipes it\nconst originalData = { \n  row_number: $json.row_number,\n  source_row_index: $json.source_row_index,\n  source_row_stable_key: $json.source_row_stable_key,\n  source_row_number: $json.source_row_number,\n  targetUrl: $json.targetUrl,\n  targetHost: $json.targetHost,\n};\n\n// Keep ALL current fields + add marker\nreturn { \n  json: { \n    ...$json, \n    _original_data: JSON.stringify(originalData) \n  } \n};"
+      },
+      "id": "22",
+      "name": "Save Original Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
         220
       ],
       "continueOnFail": true
@@ -636,6 +652,17 @@
       ]
     },
     "Debug Log": {
+      "main": [
+        [
+          {
+            "node": "Save Original Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Original Data": {
       "main": [
         [
           {
