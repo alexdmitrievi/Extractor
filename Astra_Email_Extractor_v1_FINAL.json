@@ -191,7 +191,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Normalize Response v8\n// HTTP Request with outputPropertyName:'html' REPLACES item.json entirely.\n// We recover original data (row_number, E-mail, targetUrl, etc.) from Has URL? node.\nconst httpJson = $input.item.json || {};\nconst originalJson = $('Has URL?').item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = html.length > 0 ? 200 : 0;\n\nreturn {\n  json: {\n    ...originalJson,\n    html,\n    statusCode,\n  },\n};"
+        "jsCode": "// Normalize Response v8\n// HTTP Request with outputPropertyName:'html' REPLACES item.json entirely.\n// We recover original data (row_number, E-mail, targetUrl, etc.) from Has URL? node.\nconst httpJson = $input.item.json || {};\nconst originalJson = $('Select URL').item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = html.length > 0 ? 200 : 0;\n\nreturn {\n  json: {\n    ...originalJson,\n    html,\n    statusCode,\n  },\n};"
       },
       "id": "14",
       "name": "Normalize Response",
@@ -317,7 +317,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nconst san = v => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nconst out = items.map((item, idx) => {\n  const j = item.json || {};\n  const row = Number(j.row_number ?? j.source_row_number ?? j.source_row_index ?? 0);\n  if (!Number.isFinite(row) || row < 1) return null;\n  const e1 = san(j.email_1 ?? j['E-mail'] ?? '');\n  const e2 = san(j.email_2 ?? j['E-mail 2'] ?? '');\n  const e3 = san(j.email_3 ?? j['E-mail 3'] ?? '');\n  if (!e1 && !e2 && !e3) return null;\n  return {\n    json: { row_number: row, 'E-mail': e1, 'E-mail 2': e2, 'E-mail 3': e3 },\n    pairedItem: item.pairedItem ?? { item: idx },\n  };\n}).filter(Boolean);\nconsole.log('[PrepareUpdate] in:', items.length, 'out:', out.length, out.length ? JSON.stringify(out[0].json) : '');\nreturn out;"
+        "jsCode": "// Prepare Update v3 — Single-path architecture\n// Always returns an item for every input (never filters to null).\n// Items with emails → full update; items without → pass-through {row_number} only.\nconst items = $input.all();\nconst san = v => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\n\nconst out = items.map((item, idx) => {\n  const j = item.json || {};\n  const row = Number(j.row_number ?? j.source_row_number ?? j.source_row_index ?? 0);\n  const e1 = san(j.email_1 ?? j['E-mail'] ?? '');\n  const e2 = san(j.email_2 ?? j['E-mail 2'] ?? '');\n  const e3 = san(j.email_3 ?? j['E-mail 3'] ?? '');\n  const paired = item.pairedItem ?? { item: idx };\n\n  // No valid row number — pass a sentinel so Update Row fails gracefully and continues\n  if (!Number.isFinite(row) || row < 1) {\n    return { json: { row_number: null, __skip: true }, pairedItem: paired };\n  }\n\n  // No emails found — pass row_number only so Update Row does a harmless no-op\n  if (!e1 && !e2 && !e3) {\n    return { json: { row_number: row }, pairedItem: paired };\n  }\n\n  // Has emails — prepare full update\n  const result = { json: { row_number: row, 'E-mail': e1, 'E-mail 2': e2, 'E-mail 3': e3 }, pairedItem: paired };\n  console.log('[PrepareUpdate] row=' + row + ' email_1=' + e1);\n  return result;\n}).filter(Boolean);\n\nconsole.log('[PrepareUpdate] in=' + items.length + ' out=' + out.length);\nreturn out;"
       },
       "id": "17",
       "name": "Prepare Update",
@@ -420,25 +420,7 @@
         [],
         [
           {
-            "node": "Has Empty Email Slot?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has Empty Email Slot?": {
-      "main": [
-        [
-          {
             "node": "Select URL",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Mark No URL",
             "type": "main",
             "index": 0
           }
@@ -449,25 +431,7 @@
       "main": [
         [
           {
-            "node": "Has URL?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has URL?": {
-      "main": [
-        [
-          {
             "node": "Fetch Website",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Mark No URL",
             "type": "main",
             "index": 0
           }
@@ -496,69 +460,11 @@
         ]
       ]
     },
-    "Mark No URL": {
-      "main": [
-        [
-          {
-            "node": "Progress Log",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Extract Emails": {
       "main": [
         [
           {
-            "node": "Progress Log",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Progress Log": {
-      "main": [
-        [
-          {
-            "node": "Has row_number?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has row_number?": {
-      "main": [
-        [
-          {
-            "node": "Has new emails?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log Skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has new emails?": {
-      "main": [
-        [
-          {
             "node": "Prepare Update",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Cleanup",
             "type": "main",
             "index": 0
           }
@@ -577,17 +483,6 @@
       ]
     },
     "Update Row": {
-      "main": [
-        [
-          {
-            "node": "Cleanup",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log Skipped": {
       "main": [
         [
           {
