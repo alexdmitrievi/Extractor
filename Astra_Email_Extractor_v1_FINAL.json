@@ -344,7 +344,7 @@
           "value": "Sheet1"
         },
         "dataMode": "autoMapInputData",
-        "columnToMatchOn": "row_number",
+        "columnToMatchOn": "={{ \"row_number\" }}",
         "options": {
           "valueInputMode": "RAW"
         }
