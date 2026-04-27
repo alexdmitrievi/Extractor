@@ -158,20 +158,19 @@
           ]
         },
         "options": {
-          "timeout": 25000,
+          "timeout": 8000,
           "allowUnauthorizedCerts": true,
           "redirect": {
             "redirect": {
               "followRedirects": true,
-              "maxRedirects": 5
+              "maxRedirects": 3
             }
           },
           "response": {
             "response": {
               "responseFormat": "text",
               "outputPropertyName": "html",
-              "fullResponse": false,
-              "neverError": true
+              "fullResponse": false
             }
           }
         }
