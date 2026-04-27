@@ -343,26 +343,10 @@
           "mode": "name",
           "value": "Sheet1"
         },
-        "dataMode": "defineBelow",
+        "dataMode": "autoMapInputData",
         "columnToMatchOn": "row_number",
         "options": {
           "valueInputMode": "RAW"
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "E-mail",
-              "fieldValue": "={{ $json[\"E-mail\"] || $json[\"email_1\"] || '' }}"
-            },
-            {
-              "fieldId": "E-mail 2",
-              "fieldValue": "={{ $json[\"E-mail 2\"] || $json[\"email_2\"] || '' }}"
-            },
-            {
-              "fieldId": "E-mail 3",
-              "fieldValue": "={{ $json[\"E-mail 3\"] || $json[\"email_3\"] || '' }}"
-            }
-          ]
         }
       },
       "id": "11",
