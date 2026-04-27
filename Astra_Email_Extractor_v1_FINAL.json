@@ -189,8 +189,8 @@
             "response": {
               "responseFormat": "text",
               "outputPropertyName": "html",
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": false,
+              "neverError": true
             }
           }
         }
