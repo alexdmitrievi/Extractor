@@ -334,7 +334,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowNumber = j.row_number ?? j.source_row_number ?? '';\n    if (rowNumber === '' || rowNumber == null) return null;\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : 'E-mail');\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n    const out = { row_number: rowNumber };\n    out[email1Col] = j.email_1 || '';\n    out[email2Col] = j.email_2 || '';\n    out[email3Col] = j.email_3 || '';\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
+        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    const email1Col = ('E-mail' in j) ? 'E-mail' : ('E-mail 1' in j ? 'E-mail 1' : 'E-mail');\n    const email2Col = ('E-mail 2' in j) ? 'E-mail 2' : ('Email 2' in j ? 'Email 2' : 'E-mail 2');\n    const email3Col = (' E-mail 3' in j) ? ' E-mail 3' : (('E-mail 3' in j) ? 'E-mail 3' : (('Email 3' in j) ? 'Email 3' : 'E-mail 3'));\n    const out = { row_number: rowNumber };\n    out[email1Col] = sanitize(j.email_1);\n    out[email2Col] = sanitize(j.email_2);\n    out[email3Col] = sanitize(j.email_3);\n    return { json: out, pairedItem: item.pairedItem ?? { item: idx } };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
       },
       "id": "17",
       "name": "Prepare Update",
@@ -377,7 +377,9 @@
         },
         "dataMode": "autoMapInputData",
         "columnToMatchOn": "row_number",
-        "options": {}
+        "options": {
+          "valueInputMode": "RAW"
+        }
       },
       "id": "11",
       "name": "Update Row",
@@ -389,6 +391,21 @@
       ],
       "continueOnFail": true,
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 250,
+        "unit": "ms"
+      },
+      "id": "20",
+      "name": "Throttle",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        3180,
+        300
+      ],
+      "webhookId": "throttle-loop"
     }
   ],
   "connections": {
@@ -598,6 +615,17 @@
       ]
     },
     "Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Throttle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle": {
       "main": [
         [
           {
