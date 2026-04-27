@@ -193,7 +193,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Normalize Response v2\n// HTTP Request node outputs only {html:\"...\"}, losing row_number, targetUrl, etc.\n// We restore original data from the \"Has URL?\" node (last node before the HTTP request).\nconst httpJson = $input.item.json || {};\nconst originalJson = $('Has URL?').item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  if (typeof html.body === 'string') {\n    html = html.body;\n  } else {\n    try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n  }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(httpJson.statusCode || httpJson.status || 0);\n\nreturn {\n  json: {\n    ...originalJson,\n    html,\n    statusCode,\n  },\n};"
+        "jsCode": "// Normalize Response v3 - HTTP Request now preserves original fields\nconst httpJson = $input.item.json || {};\n\nlet html = httpJson.html || httpJson.body || '';\nif (html && typeof html === 'object') {\n  if (typeof html.body === 'string') {\n    html = html.body;\n  } else {\n    try { html = JSON.stringify(html); } catch(e) { html = String(html); }\n  }\n}\nif (typeof html !== 'string') html = html == null ? '' : String(html);\n\nconst statusCode = Number(httpJson.statusCode || httpJson.status || 0);\n\nconsole.log('[NORMALIZE] row=' + httpJson.row_number + ' html_len=' + html.length + ' status=' + statusCode);\n\nreturn {\n  json: {\n    ...httpJson,\n    html,\n    statusCode,\n  },\n};"
       },
       "id": "14",
       "name": "Normalize Response",
@@ -389,6 +389,22 @@
         300
       ],
       "webhookId": "throttle-loop"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const url = $json.targetUrl || '(no-url)';\nconsole.log('[DEBUG] Row ' + $json.row_number + ' -> Fetching: ' + url);\nreturn { json: $json };"
+      },
+      "id": "21",
+      "name": "Debug Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        220
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -459,7 +475,7 @@
       "main": [
         [
           {
-            "node": "Fetch Website",
+            "node": "Debug Log",
             "type": "main",
             "index": 0
           }
@@ -613,6 +629,17 @@
         [
           {
             "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Log": {
+      "main": [
+        [
+          {
+            "node": "Fetch Website",
             "type": "main",
             "index": 0
           }
