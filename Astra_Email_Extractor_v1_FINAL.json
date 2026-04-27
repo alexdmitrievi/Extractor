@@ -7,7 +7,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -31,7 +34,10 @@
       "name": "Get Row(s)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
@@ -41,7 +47,10 @@
       "name": "Loop Over Items",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -70,7 +79,10 @@
       "name": "Has Empty Email Slot?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -82,7 +94,10 @@
       "name": "Select URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 220],
+      "position": [
+        1120,
+        220
+      ],
       "continueOnFail": true
     },
     {
@@ -102,7 +117,10 @@
       "name": "Has URL?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1320, 220]
+      "position": [
+        1320,
+        220
+      ]
     },
     {
       "parameters": {
@@ -112,18 +130,54 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" },
-            { "name": "Accept", "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" },
-            { "name": "Accept-Language", "value": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7" },
-            { "name": "Accept-Encoding", "value": "gzip, deflate" },
-            { "name": "Cache-Control", "value": "no-cache" },
-            { "name": "Pragma", "value": "no-cache" },
-            { "name": "Sec-Fetch-Dest", "value": "document" },
-            { "name": "Sec-Fetch-Mode", "value": "navigate" },
-            { "name": "Sec-Fetch-Site", "value": "none" },
-            { "name": "Sec-Fetch-User", "value": "?1" },
-            { "name": "Upgrade-Insecure-Requests", "value": "1" },
-            { "name": "Cookie", "value": "remixlang=0" }
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "name": "Sec-Fetch-Dest",
+              "value": "document"
+            },
+            {
+              "name": "Sec-Fetch-Mode",
+              "value": "navigate"
+            },
+            {
+              "name": "Sec-Fetch-Site",
+              "value": "none"
+            },
+            {
+              "name": "Sec-Fetch-User",
+              "value": "?1"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            },
+            {
+              "name": "Cookie",
+              "value": "remixlang=0"
+            }
           ]
         },
         "options": {
@@ -149,7 +203,10 @@
       "name": "Fetch Website",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1520, 220],
+      "position": [
+        1520,
+        220
+      ],
       "continueOnFail": true,
       "onError": "continueRegularOutput",
       "retryOnFail": true,
@@ -166,7 +223,10 @@
       "name": "Normalize Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 220],
+      "position": [
+        1700,
+        220
+      ],
       "continueOnFail": true
     },
     {
@@ -179,7 +239,10 @@
       "name": "Extract Emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1880, 220],
+      "position": [
+        1880,
+        220
+      ],
       "continueOnFail": true
     },
     {
@@ -192,7 +255,10 @@
       "name": "Mark No URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1520, 380],
+      "position": [
+        1520,
+        380
+      ],
       "continueOnFail": true
     },
     {
@@ -205,7 +271,10 @@
       "name": "Progress Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2060, 220],
+      "position": [
+        2060,
+        220
+      ],
       "continueOnFail": true
     },
     {
@@ -225,7 +294,10 @@
       "name": "Has row_number?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2240, 220]
+      "position": [
+        2240,
+        220
+      ]
     },
     {
       "parameters": {
@@ -237,7 +309,10 @@
       "name": "Log Skipped",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2240, 420],
+      "position": [
+        2240,
+        420
+      ],
       "continueOnFail": true
     },
     {
@@ -257,7 +332,10 @@
       "name": "Has new emails?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2440, 220]
+      "position": [
+        2440,
+        220
+      ]
     },
     {
       "parameters": {
@@ -269,7 +347,10 @@
       "name": "Prepare Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2620, 220],
+      "position": [
+        2620,
+        220
+      ],
       "continueOnFail": true
     },
     {
@@ -311,7 +392,10 @@
       "name": "Update Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
-      "position": [2820, 220],
+      "position": [
+        2820,
+        220
+      ],
       "continueOnFail": true,
       "onError": "continueRegularOutput"
     },
@@ -325,7 +409,10 @@
       "name": "Cleanup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3020, 300],
+      "position": [
+        3020,
+        300
+      ],
       "continueOnFail": true
     },
     {
@@ -337,79 +424,240 @@
       "name": "Throttle",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [3220, 300],
+      "position": [
+        3220,
+        300
+      ],
       "webhookId": "throttle-loop"
     }
   ],
   "connections": {
     "Manual Trigger": {
-      "main": [[{ "node": "Get Row(s)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Row(s)": {
-      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Over Items": {
       "main": [
-        [],
-        [{ "node": "Has Empty Email Slot?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Has Empty Email Slot?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "Has Empty Email Slot?": {
       "main": [
-        [{ "node": "Select URL", "type": "main", "index": 0 }],
-        [{ "node": "Cleanup", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Select URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Select URL": {
-      "main": [[{ "node": "Has URL?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has URL?": {
       "main": [
-        [{ "node": "Fetch Website", "type": "main", "index": 0 }],
-        [{ "node": "Mark No URL", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Fetch Website",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark No URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Fetch Website": {
-      "main": [[{ "node": "Normalize Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalize Response": {
-      "main": [[{ "node": "Extract Emails", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Mark No URL": {
-      "main": [[{ "node": "Progress Log", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Progress Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Emails": {
-      "main": [[{ "node": "Progress Log", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Progress Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Progress Log": {
-      "main": [[{ "node": "Has row_number?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has row_number?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has row_number?": {
       "main": [
-        [{ "node": "Has new emails?", "type": "main", "index": 0 }],
-        [{ "node": "Log Skipped", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Has new emails?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Has new emails?": {
       "main": [
-        [{ "node": "Prepare Update", "type": "main", "index": 0 }],
-        [{ "node": "Cleanup", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Update": {
-      "main": [[{ "node": "Update Row", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update Row": {
-      "main": [[{ "node": "Cleanup", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Log Skipped": {
-      "main": [[{ "node": "Cleanup", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Cleanup": {
-      "main": [[{ "node": "Throttle", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Throttle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Throttle": {
-      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
