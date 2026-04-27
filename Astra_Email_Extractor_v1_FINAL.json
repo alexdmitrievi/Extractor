@@ -318,7 +318,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    return {\n      json: {\n        row_number: rowNumber,\n        'E-mail': sanitize(j.email_1),\n        'E-mail 2': sanitize(j.email_2),\n        'E-mail 3': sanitize(j.email_3),\n      },\n      pairedItem: item.pairedItem ?? { item: idx },\n    };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
+        "jsCode": "const items = $input.all();\nconst sanitize = (v) => String(v == null ? '' : v).replace(/[\\u0000-\\u001f\\u007f]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 320);\nreturn items.map((item, idx) => {\n  try {\n    const j = item.json || {};\n    const rowRaw = j.row_number ?? j.source_row_number ?? '';\n    const rowNumber = Number(rowRaw);\n    if (!Number.isFinite(rowNumber) || rowNumber < 1) return null;\n    return {\n      json: {\n        // _rowNumber is n8n's reserved identifier for the actual spreadsheet row.\n        // columnToMatchOn: \"_rowNumber\" in Update Row matches by this value.\n        _rowNumber: rowNumber,\n        row_number: rowNumber,  // keep for logging/debugging\n        'E-mail': sanitize(j.email_1),\n        'E-mail 2': sanitize(j.email_2),\n        'E-mail 3': sanitize(j.email_3),\n      },\n      pairedItem: item.pairedItem ?? { item: idx },\n    };\n  } catch (err) {\n    return null;\n  }\n}).filter(Boolean);"
       },
       "id": "17",
       "name": "Prepare Update",
@@ -344,7 +344,7 @@
           "value": "Sheet1"
         },
         "dataMode": "autoMapInputData",
-        "columnToMatchOn": "row_number",
+        "columnToMatchOn": "_rowNumber",
         "options": {
           "valueInputMode": "RAW"
         }
