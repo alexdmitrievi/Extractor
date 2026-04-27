@@ -406,7 +406,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Filter Rows v2 — skip rows that already have email, process ALL remaining\nconst items = $input.all();\nconst needsEmail = items.filter(item => !(item.json['E-mail'] || '').toString().trim());\nconsole.log('[FilterRows] total=' + items.length + ' needs_email=' + needsEmail.length);\nreturn needsEmail;"
+        "jsCode": "// Filter Rows v3 — skip rows that already have email, cap at ROWS_LIMIT per run\nconst ROWS_LIMIT = 100;\nconst items = $input.all();\nconst needsEmail = items.filter(item => !(item.json['E-mail'] || '').toString().trim());\nconst batch = needsEmail.slice(0, ROWS_LIMIT);\nconsole.log('[FilterRows] total=' + items.length + ' needs_email=' + needsEmail.length + ' this_run=' + batch.length);\nreturn batch;"
       }
     }
   ],
